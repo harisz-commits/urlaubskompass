@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Urlaubskompass — wo ist das Meer warm?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ---------- Token-System ---------- */
+  :root{
+    --deep:#04141d;            /* tiefes Meer / Hintergrund */
+    --deep-2:#06202c;
+    --panel:#0a2733;           /* Karte */
+    --panel-2:#0e3242;
+    --line:rgba(178,224,224,.10);
+    --line-2:rgba(178,224,224,.18);
+    --foam:#e9f4f3;            /* Text hell */
+    --mist:#8aa9b2;            /* Text gedämpft */
+    --mist-dim:#5d7e88;
+    --focus:#6fe0d4;
+    --maxw:1200px;
+    /* Temperaturskala 8°→30° (kalt → warm) */
+    --scale:linear-gradient(90deg,
+      #3d4ea8 0%, #2f6fb0 18%, #1f93a8 36%, #1aab86 50%,
+      #7cc24f 64%, #f2bf3c 77%, #ee8a3a 86%, #e15a4c 100%);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 540px at 70% -160px, rgba(47,111,176,.16), transparent 60%),
+      linear-gradient(180deg, var(--deep) 0%, var(--deep-2) 100%);
+    background-attachment:fixed;
+    color:var(--foam);
+    font-family:"Space Grotesk", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+
+  /* ---------- Kopf / Toolbar ---------- */
+  header.bar{
+    position:sticky; top:0; z-index:20;
+    backdrop-filter:blur(14px);
+    background:linear-gradient(180deg, rgba(4,20,29,.86), rgba(4,20,29,.66));
+    border-bottom:1px solid var(--line);
+  }
+  .bar-top{display:flex; align-items:center; gap:14px; padding:13px 0 11px}
+  .brand{display:flex; align-items:baseline; gap:10px; min-width:0}
+  .brand .glyph{font-size:18px; line-height:1}
+  .brand b{font-weight:700; font-size:16px; letter-spacing:.2px; white-space:nowrap}
+  .brand .tag{color:var(--mist); font-size:12.5px; letter-spacing:.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .bar-top .spacer{flex:1}
+
+  .months{display:flex; gap:6px; overflow-x:auto; padding:2px 0 12px; scrollbar-width:thin; -webkit-overflow-scrolling:touch}
+  .months::-webkit-scrollbar{height:6px}
+  .months::-webkit-scrollbar-thumb{background:var(--line-2); border-radius:6px}
+  .chip{
+    flex:0 0 auto; cursor:pointer; font-family:inherit; font-size:13px; letter-spacing:.3px;
+    color:var(--mist); background:transparent; border:1px solid var(--line);
+    padding:6px 12px; border-radius:999px; transition:background .15s, color .15s, border-color .15s;
+  }
+  .chip:hover{background:var(--panel); color:var(--foam)}
+  .chip[aria-pressed="true"]{background:var(--panel-2); color:var(--foam); border-color:var(--line-2); font-weight:500}
+
+  .controls{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; padding-bottom:14px}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden}
+  .seg button{cursor:pointer; font-family:inherit; font-size:12.5px; color:var(--mist); background:transparent; border:0; padding:7px 13px; transition:background .15s,color .15s}
+  .seg button[aria-pressed="true"]{background:var(--panel-2); color:var(--foam)}
+  .stepper{display:none; align-items:center; gap:2px}
+  .stepper.on{display:inline-flex}
+  .stepper button{cursor:pointer; width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--foam); font-size:16px; line-height:1}
+  .stepper button:hover{background:var(--panel)}
+  .stepper .dayval{min-width:46px; text-align:center; font-size:13px}
+
+  .field{display:inline-flex; align-items:center; gap:8px; color:var(--mist); font-size:12.5px}
+  select, input[type="search"]{
+    font-family:"IBM Plex Mono", monospace; font-size:12.5px; color:var(--foam);
+    background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:7px 10px;
+  }
+  input[type="search"]{min-width:160px}
+  input[type="range"]{accent-color:var(--focus); width:120px}
+  .slidval{min-width:30px; color:var(--foam)}
+
+  :focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+
+  /* ---------- Hero / Skala ---------- */
+  .hero{padding:30px 0 8px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.32em; color:var(--mist-dim); text-transform:uppercase}
+  .hero h1{margin:10px 0 8px; font-size:clamp(28px,5.2vw,46px); line-height:1.02; font-weight:700; letter-spacing:-.5px}
+  .hero p{margin:0; max-width:62ch; color:var(--mist); font-size:15px; line-height:1.55}
+  .legend{margin:22px 0 6px; display:flex; align-items:center; gap:14px}
+  .legend .label{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--mist-dim); letter-spacing:.1em; white-space:nowrap}
+  .legend .barwrap{flex:1; min-width:0}
+  .legend .gradbar{height:12px; border-radius:999px; background:var(--scale); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .legend .ticks{display:flex; justify-content:space-between; margin-top:6px; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--mist-dim)}
+
+  /* ---------- Status-Zeile ---------- */
+  .status{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; padding:22px 0 14px; border-bottom:1px solid var(--line); margin-bottom:22px}
+  .status .big{font-size:20px; font-weight:600; letter-spacing:-.2px}
+  .status .meta{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--mist)}
+  .status .load{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--focus)}
+
+  .banner{display:none; margin:14px 0 0; padding:12px 14px; border:1px solid rgba(236,138,58,.4); background:rgba(236,138,58,.08); border-radius:12px; color:#f3c089; font-size:13px; line-height:1.5}
+  .banner.on{display:block}
+
+  /* ---------- Karten ---------- */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:16px; padding-bottom:48px}
+  .card{
+    position:relative; display:flex; flex-direction:column; gap:15px;
+    background:linear-gradient(180deg, rgba(14,50,66,.55), rgba(10,39,51,.55));
+    border:1px solid var(--line); border-radius:16px; padding:17px 17px 16px;
+    transition:border-color .18s, transform .18s, box-shadow .18s;
+  }
+  .card:hover{border-color:var(--line-2); transform:translateY(-2px); box-shadow:0 14px 34px -22px rgba(0,0,0,.9)}
+  .card.hidden{display:none}
+
+  .card-h{display:flex; align-items:flex-start; gap:11px}
+  .flag{font-size:21px; line-height:1.1; flex:0 0 auto}
+  .card-ht{min-width:0; flex:1}
+  .name{margin:0; font-size:17.5px; font-weight:600; letter-spacing:-.2px; line-height:1.15}
+  .sea-label{margin-top:3px; font-size:10.5px; letter-spacing:.13em; color:var(--mist-dim); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .now{text-align:right; flex:0 0 auto}
+  .now-v{font-size:23px; font-weight:500; line-height:1; letter-spacing:-.5px}
+  .now-l{margin-top:4px; font-size:10px; letter-spacing:.08em; color:var(--mist-dim); text-transform:uppercase}
+  .now-sub{margin-top:3px; font-size:11px; color:var(--mist-dim)}
+  .rv b{font-weight:700; color:var(--foam)}
+  .rv .tmin{color:#5aa6e0}
+  .rv .tmax{color:#ee8a3a}
+  .rv .dash{margin:0 .4em; color:var(--mist-dim)}
+  .rv .sep{margin:0 .5em; color:var(--mist-dim)}
+  .rv .sub{color:var(--mist)}
+
+  /* Aufklapp-Button "Weitere Filter" (Größe wie .seg) */
+  .seg-btn{cursor:pointer; font-family:inherit; font-size:12.5px; color:var(--mist); background:transparent;
+           border:1px solid var(--line); border-radius:999px; padding:7px 13px}
+  .seg-btn[aria-expanded="true"]{background:var(--panel-2); color:var(--foam)}
+
+  /* Filter (kompakt, Größe wie Controls) */
+  .chk{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--mist); cursor:pointer}
+  .chk input{width:15px; height:15px; accent-color:var(--focus)}
+  .filters{display:flex; flex-direction:column; gap:6px; padding:4px 0 14px}
+  .filters[hidden]{display:none}
+  .filters input[type=search]{font-size:12.5px; background:var(--panel-2); color:var(--foam); border:1px solid var(--line); border-radius:9px; padding:8px 11px; width:100%}
+  .filt{display:flex; align-items:center; gap:7px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:5px 10px}
+  .filt .fk{flex:0 0 auto; min-width:86px; font-size:12px; color:var(--mist)}
+  .filt .fv{flex:0 0 auto; min-width:52px; text-align:right; font-size:12px; color:var(--foam)}
+  .filt.off .fv{color:var(--mist-dim)}
+  .filt input[type=range]{flex:1 1 auto; min-width:48px; height:20px; accent-color:var(--focus)}
+  .filt select{flex:1 1 auto; min-width:48px; font-size:12.5px; background:var(--panel-2); color:var(--foam); border:1px solid var(--line); border-radius:7px; padding:4px 6px}
+  .fbtn{flex:0 0 auto; width:26px; height:26px; border-radius:7px; border:1px solid var(--line-2);
+        background:var(--panel-2); color:var(--foam); font-size:17px; line-height:1; cursor:pointer; touch-action:manipulation}
+  .fbtn:active{background:var(--focus); color:var(--deep)}
+  .range2{position:relative; flex:1 1 auto; min-width:60px; height:24px; display:flex; align-items:center}
+  .range2 .track{position:absolute; left:0; right:0; height:4px; border-radius:3px; background:var(--line-2)}
+  .range2 input[type=range]{position:absolute; left:0; width:100%; margin:0; background:none; pointer-events:none; -webkit-appearance:none; appearance:none; height:24px}
+  .range2 input[type=range]::-webkit-slider-thumb{pointer-events:auto; -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--focus); border:2px solid var(--deep); cursor:pointer}
+  .range2 input[type=range]::-moz-range-thumb{pointer-events:auto; width:20px; height:20px; border-radius:50%; background:var(--focus); border:2px solid var(--deep); cursor:pointer}
+
+  /* Vorhersage-Raster */
+  .fc{margin-top:11px; padding-top:11px; border-top:1px solid var(--line)}
+  .fc-h{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--mist); margin-bottom:8px}
+  .fc-h .fc-sub{color:var(--mist-dim); letter-spacing:.06em}
+  .fc-block{margin-bottom:8px}
+  .fc-lbl{font-size:10px; letter-spacing:.13em; color:var(--mist-dim); text-transform:uppercase; margin-bottom:4px}
+  .fc-grid{display:grid; grid-template-columns:repeat(8,1fr); gap:4px}
+  .fc-day{display:flex; flex-direction:column; align-items:center; gap:1px; padding:5px 0; border-radius:8px; background:var(--panel-2)}
+  .fc-dow{font-size:9px; color:var(--mist-dim); font-family:"IBM Plex Mono",monospace}
+  .fc-ico{font-size:14px; line-height:1.1}
+  .fc-t{font-size:12px; font-weight:600; font-family:"IBM Plex Mono",monospace}
+  .fc-pop{display:flex; align-items:center; gap:1px; margin-top:1px; font-size:8.5px; color:#5aa6e0; font-family:"IBM Plex Mono",monospace}
+
+  /* Mess-Skala (Signature) */
+  .gauge{margin-top:1px}
+  .axis{position:relative; height:12px; border-radius:999px; background:var(--scale); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .mask{position:absolute; top:0; bottom:0; background:rgba(5,24,32,.80); transition:width .4s ease, left .4s ease}
+  .mask-l{left:0; width:100%; border-radius:999px 0 0 999px}
+  .mask-r{right:0; left:100%; border-radius:0 999px 999px 0}
+  .avg{position:absolute; top:-3px; width:2px; height:18px; background:#fff; border-radius:2px; transform:translateX(-1px); z-index:2; box-shadow:0 0 0 1px rgba(5,24,32,.6); opacity:0; transition:left .4s ease, opacity .25s}
+  .dot{position:absolute; top:50%; width:13px; height:13px; border-radius:50%; background:#888; border:2px solid var(--deep); transform:translate(-50%,-50%); z-index:3; opacity:0; transition:left .4s ease, opacity .25s, background .25s}
+  .dot::after{content:""; position:absolute; inset:-4px; border-radius:50%; border:1.5px solid currentColor; opacity:.0; animation:pulse 2.6s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.6); opacity:.55} 70%{transform:scale(1.7); opacity:0} 100%{opacity:0}}
+  .axis-ends{display:flex; justify-content:space-between; margin-top:6px; font-size:10.5px; color:var(--mist-dim)}
+
+  .reads{display:flex; flex-direction:column; gap:7px}
+  .read-row{display:flex; align-items:baseline; gap:10px}
+  .rk{flex:0 0 38px; font-size:11px; letter-spacing:.06em; color:var(--mist-dim); text-transform:uppercase}
+  .rv{font-size:13px; color:var(--foam)}
+  .rv.loading{color:var(--mist-dim); animation:blink 1.4s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:.45} 50%{opacity:.9}}
+
+  .verdict{font-size:12.5px; color:var(--mist); min-height:16px}
+
+  footer{border-top:1px solid var(--line); padding:24px 0 60px; color:var(--mist-dim); font-size:12.5px; line-height:1.6}
+  footer a{color:var(--mist)}
+
+  @media (max-width:560px){
+    .now-v{font-size:21px}
+    .legend .label{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important; animation:none !important}
+  }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <div class="wrap">
+      <div class="bar-top">
+        <div class="brand">
+          <span class="glyph">🌊</span>
+          <b>Urlaubskompass</b>
+          <span class="tag">das beste Badeziel für deinen Monat</span>
+        </div>
+        <div class="spacer"></div>
+      </div>
+
+      <div class="months" id="months" role="group" aria-label="Monat wählen"></div>
+
+      <div class="controls">
+        <label class="field">Sortieren
+          <select id="sort">
+            <option value="sea">Meer Ø — wärmste zuerst</option>
+            <option value="air">Luft Ø — wärmste zuerst</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="country">Land</option>
+          </select>
+        </label>
+
+        <label class="field">Flug&nbsp;ab
+          <select id="origin">
+            <option value="ALL">Alle Flughäfen</option>
+            <optgroup label="Österreich">
+              <option value="GRZ">Graz</option>
+              <option value="INN">Innsbruck</option>
+              <option value="KLU">Klagenfurt</option>
+              <option value="LNZ">Linz</option>
+              <option value="SZG">Salzburg</option>
+              <option value="VIE">Wien</option>
+            </optgroup>
+            <optgroup label="Deutschland">
+              <option value="BER">Berlin</option>
+              <option value="BRE">Bremen</option>
+              <option value="DTM">Dortmund</option>
+              <option value="DRS">Dresden</option>
+              <option value="DUS">Düsseldorf</option>
+              <option value="FRA">Frankfurt</option>
+              <option value="FDH">Friedrichshafen</option>
+              <option value="HAM">Hamburg</option>
+              <option value="HAJ">Hannover</option>
+              <option value="FKB">Karlsruhe/Baden-Baden</option>
+              <option value="CGN">Köln/Bonn</option>
+              <option value="LEJ">Leipzig/Halle</option>
+              <option value="FMM">Memmingen</option>
+              <option value="MUC">München</option>
+              <option value="FMO">Münster/Osnabrück</option>
+              <option value="NUE">Nürnberg</option>
+              <option value="PAD">Paderborn</option>
+              <option value="SCN">Saarbrücken</option>
+              <option value="STR">Stuttgart</option>
+            </optgroup>
+            <optgroup label="Schweiz">
+              <option value="BSL">Basel</option>
+              <option value="GVA">Genf</option>
+              <option value="ZRH">Zürich</option>
+            </optgroup>
+          </select>
+        </label>
+
+        <button id="togglefilters" class="seg-btn" aria-expanded="false">Weitere Filter ▾</button>
+      </div>
+
+      <div class="filters" id="filters" hidden>
+        <input type="search" id="search" placeholder="Reiseziel suchen…" aria-label="Reiseziel suchen" />
+        <label class="chk"><input type="checkbox" id="directonly" /> nur Direktflüge anzeigen</label>
+        <div class="filt" id="filt-country">
+          <span class="fk">Land</span>
+          <select id="country"></select>
+        </div>
+        <div class="filt" id="filt-sea">
+          <span class="fk">Meer Ø, min.</span>
+          <button class="fbtn" data-f="sea" data-d="-1" aria-label="weniger">−</button>
+          <input type="range" id="minsea" min="7" max="30" step="1" value="7" />
+          <button class="fbtn" data-f="sea" data-d="1" aria-label="mehr">+</button>
+          <span class="fv mono" id="seaval">aus</span>
+        </div>
+        <div class="filt" id="filt-air">
+          <span class="fk">Luft Ø, Bereich</span>
+          <div class="range2">
+            <div class="track"></div>
+            <input type="range" id="airmin" min="7" max="40" step="1" value="7" />
+            <input type="range" id="airmax" min="7" max="40" step="1" value="40" />
+          </div>
+          <span class="fv mono" id="airval">aus</span>
+        </div>
+        <div class="filt" id="filt-rain">
+          <span class="fk">Regentage, max.</span>
+          <button class="fbtn" data-f="rain" data-d="-1" aria-label="weniger">−</button>
+          <input type="range" id="maxrain" min="0" max="20" step="1" value="20" />
+          <button class="fbtn" data-f="rain" data-d="1" aria-label="mehr">+</button>
+          <span class="fv mono" id="rainval">aus</span>
+        </div>
+        <div class="filt" id="filt-flight">
+          <span class="fk">Flugzeit, max.</span>
+          <button class="fbtn" data-f="flight" data-d="-1" aria-label="weniger">−</button>
+          <input type="range" id="maxflight" min="1" max="8" step="0.5" value="8" />
+          <button class="fbtn" data-f="flight" data-d="1" aria-label="mehr">+</button>
+          <span class="fv mono" id="flightval">aus</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Europa · Badeziele</div>
+      <h1>Wo ist das Meer warm genug?</h1>
+      <p>Finde das beste Badeziel für deinen Reisemonat: typische Meerwasser- und Lufttemperatur, Sonne, Regen und Tageslänge für jeden Ort — plus Flugzeit ab deiner Stadt. Wähle oben den Reisemonat, sortiere und filtere.</p>
+
+      <div class="legend">
+        <span class="label mono">kalt</span>
+        <div class="barwrap">
+          <div class="gradbar"></div>
+          <div class="ticks"><span>8°</span><span>13°</span><span>18°</span><span>22°</span><span>26°</span><span>30°</span></div>
+        </div>
+        <span class="label mono">warm</span>
+      </div>
+      <div class="banner" id="banner"></div>
+    </section>
+
+    <div class="status">
+      <span class="big" id="status-period">September</span>
+      <span class="meta" id="status-meta"></span>
+      <span class="load" id="status-load"></span>
+    </div>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <footer class="wrap">
+    Meerwasser sprechen wir hier durchgehend an — gemeint ist die Wassertemperatur direkt an der Oberfläche.
+    Daten: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+    (Copernicus Marine / ERA5-Ocean &amp; DWD ICON für Meerwasser, ERA5 für Lufttemperatur).
+    Alle Werte sind typische Klimawerte aus mehreren Jahren (Ø, mit Tagesspanne Tief–Hoch) — also Näherungswerte (ca.). Flugzeiten sind Schätzungen aus der Distanz; Direktflug-Angaben basieren auf OpenFlights und können saisonal abweichen.
+    Liste leicht erweiterbar: weitere Ziele einfach im <code>DESTINATIONS</code>-Array ergänzen.
+  </footer>
+
+<script>
+"use strict";
+
+/* =========================================================
+   1) Ziele — einfach erweiterbar: { id, name, country, flag, sea, lat, lon }
+   ========================================================= */
+const DESTINATIONS = [
+  {id:'palma', name:'Palma de Mallorca', country:'Spanien', flag:'🇪🇸', sea:'Mallorca', lat:39.569, lon:2.65},
+  {id:'ibiza', name:'Ibiza', country:'Spanien', flag:'🇪🇸', sea:'Ibiza', lat:38.909, lon:1.432},
+  {id:'barcelona', name:'Barcelona', country:'Spanien', flag:'🇪🇸', sea:'Costa Brava', lat:41.369, lon:2.19},
+  {id:'malaga', name:'Málaga', country:'Spanien', flag:'🇪🇸', sea:'Costa del Sol', lat:36.715, lon:-4.42},
+  {id:'marbella', name:'Marbella', country:'Spanien', flag:'🇪🇸', sea:'Costa del Sol', lat:36.488, lon:-4.882},
+  {id:'alicante', name:'Alicante', country:'Spanien', flag:'🇪🇸', sea:'Costa Blanca', lat:38.335, lon:-0.481},
+  {id:'lloret', name:'Lloret de Mar', country:'Spanien', flag:'🇪🇸', sea:'Costa Brava', lat:41.695, lon:2.848},
+  {id:'tenerife', name:'Teneriffa', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:28.041, lon:-16.741},
+  {id:'grancanaria', name:'Gran Canaria', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:27.741, lon:-15.586},
+  {id:'fuerteventura', name:'Fuerteventura', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:28.359, lon:-14.053},
+  {id:'lanzarote', name:'Lanzarote', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:28.963, lon:-13.548},
+  {id:'albufeira', name:'Albufeira', country:'Portugal', flag:'🇵🇹', sea:'Algarve', lat:37.084, lon:-8.25},
+  {id:'lagos', name:'Lagos', country:'Portugal', flag:'🇵🇹', sea:'Algarve', lat:37.092, lon:-8.673},
+  {id:'cascais', name:'Cascais', country:'Portugal', flag:'🇵🇹', sea:'bei Lissabon', lat:38.697, lon:-9.421},
+  {id:'funchal', name:'Funchal', country:'Portugal', flag:'🇵🇹', sea:'Madeira', lat:32.64, lon:-16.916},
+  {id:'nizza', name:'Nizza', country:'Frankreich', flag:'🇫🇷', sea:'Côte d’Azur', lat:43.69, lon:7.271},
+  {id:'cannes', name:'Cannes', country:'Frankreich', flag:'🇫🇷', sea:'Côte d’Azur', lat:43.547, lon:7.017},
+  {id:'sttropez', name:'Saint-Tropez', country:'Frankreich', flag:'🇫🇷', sea:'Côte d’Azur', lat:43.27, lon:6.638},
+  {id:'biarritz', name:'Biarritz', country:'Frankreich', flag:'🇫🇷', sea:'Atlantikküste', lat:43.481, lon:-1.559},
+  {id:'ajaccio', name:'Ajaccio', country:'Frankreich', flag:'🇫🇷', sea:'Korsika', lat:41.918, lon:8.738},
+  {id:'marseille', name:'Marseille', country:'Frankreich', flag:'🇫🇷', sea:'Provence', lat:43.291, lon:5.37},
+  {id:'positano', name:'Positano', country:'Italien', flag:'🇮🇹', sea:'Amalfiküste', lat:40.628, lon:14.485},
+  {id:'sorrent', name:'Sorrent', country:'Italien', flag:'🇮🇹', sea:'Amalfiküste', lat:40.626, lon:14.375},
+  {id:'cagliari', name:'Cagliari', country:'Italien', flag:'🇮🇹', sea:'Sardinien', lat:39.215, lon:9.11},
+  {id:'palermo', name:'Palermo', country:'Italien', flag:'🇮🇹', sea:'Sizilien', lat:38.12, lon:13.36},
+  {id:'taormina', name:'Taormina', country:'Italien', flag:'🇮🇹', sea:'Sizilien', lat:37.851, lon:15.293},
+  {id:'rimini', name:'Rimini', country:'Italien', flag:'🇮🇹', sea:'Adria', lat:44.06, lon:12.57},
+  {id:'venedig', name:'Venedig (Lido)', country:'Italien', flag:'🇮🇹', sea:'Adria', lat:45.413, lon:12.366},
+  {id:'cinqueterre', name:'Cinque Terre', country:'Italien', flag:'🇮🇹', sea:'Ligurien', lat:44.128, lon:9.71},
+  {id:'capri', name:'Capri', country:'Italien', flag:'🇮🇹', sea:'Golf v. Neapel', lat:40.551, lon:14.243},
+  {id:'santorin', name:'Santorin', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:36.393, lon:25.461},
+  {id:'mykonos', name:'Mykonos', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:37.452, lon:25.328},
+  {id:'kreta', name:'Kreta (Heraklion)', country:'Griechenland', flag:'🇬🇷', sea:'Kreta', lat:35.339, lon:25.133},
+  {id:'rhodos', name:'Rhodos', country:'Griechenland', flag:'🇬🇷', sea:'Dodekanes', lat:36.434, lon:28.218},
+  {id:'korfu', name:'Korfu', country:'Griechenland', flag:'🇬🇷', sea:'Ionische Inseln', lat:39.62, lon:19.92},
+  {id:'zakynthos', name:'Zakynthos', country:'Griechenland', flag:'🇬🇷', sea:'Ionische Inseln', lat:37.788, lon:20.899},
+  {id:'kos', name:'Kos', country:'Griechenland', flag:'🇬🇷', sea:'Dodekanes', lat:36.893, lon:27.288},
+  {id:'dubrovnik', name:'Dubrovnik', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:42.641, lon:18.108},
+  {id:'split', name:'Split', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:43.508, lon:16.44},
+  {id:'hvar', name:'Hvar', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:43.172, lon:16.443},
+  {id:'zadar', name:'Zadar', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:44.119, lon:15.231},
+  {id:'antalya', name:'Antalya', country:'Türkei', flag:'🇹🇷', sea:'Türk. Riviera', lat:36.862, lon:30.713},
+  {id:'bodrum', name:'Bodrum', country:'Türkei', flag:'🇹🇷', sea:'Türk. Ägäis', lat:37.034, lon:27.43},
+  {id:'side', name:'Side', country:'Türkei', flag:'🇹🇷', sea:'Türk. Riviera', lat:36.767, lon:31.389},
+  {id:'ayianapa', name:'Ayia Napa', country:'Zypern', flag:'🇨🇾', sea:'Ostzypern', lat:34.988, lon:34.0},
+  {id:'paphos', name:'Paphos', country:'Zypern', flag:'🇨🇾', sea:'Westzypern', lat:34.752, lon:32.411},
+  {id:'sliema', name:'Sliema', country:'Malta', flag:'🇲🇹', sea:'', lat:35.912, lon:14.504},
+  {id:'budva', name:'Budva', country:'Montenegro', flag:'🇲🇪', sea:'Budva-Riviera', lat:42.286, lon:18.84},
+  {id:'brighton', name:'Brighton', country:'England', flag:'🇬🇧', sea:'Südküste', lat:50.821, lon:-0.137},
+  {id:'sylt', name:'Sylt', country:'Deutschland', flag:'🇩🇪', sea:'Nordsee', lat:54.908, lon:8.313},
+  {id:'menorca', name:'Menorca', country:'Spanien', flag:'🇪🇸', sea:'Menorca', lat:39.889, lon:4.265},
+  {id:'formentera', name:'Formentera', country:'Spanien', flag:'🇪🇸', sea:'Balearen', lat:38.7, lon:1.43},
+  {id:'salou', name:'Salou', country:'Spanien', flag:'🇪🇸', sea:'Costa Dorada', lat:41.076, lon:1.139},
+  {id:'valencia', name:'Valencia', country:'Spanien', flag:'🇪🇸', sea:'Costa de Valencia', lat:39.464, lon:-0.33},
+  {id:'denia', name:'Dénia', country:'Spanien', flag:'🇪🇸', sea:'Costa Blanca', lat:38.84, lon:0.106},
+  {id:'almeria', name:'Almería', country:'Spanien', flag:'🇪🇸', sea:'Costa de Almería', lat:36.834, lon:-2.464},
+  {id:'cadiz', name:'Cádiz', country:'Spanien', flag:'🇪🇸', sea:'Costa de la Luz', lat:36.529, lon:-6.292},
+  {id:'tarifa', name:'Tarifa', country:'Spanien', flag:'🇪🇸', sea:'Costa de la Luz', lat:36.013, lon:-5.604},
+  {id:'sansebastian', name:'San Sebastián', country:'Spanien', flag:'🇪🇸', sea:'Baskenland', lat:43.321, lon:-1.985},
+  {id:'sitges', name:'Sitges', country:'Spanien', flag:'🇪🇸', sea:'bei Barcelona', lat:41.235, lon:1.811},
+  {id:'portosanto', name:'Porto Santo', country:'Portugal', flag:'🇵🇹', sea:'Madeira', lat:33.066, lon:-16.339},
+  {id:'ericeira', name:'Ericeira', country:'Portugal', flag:'🇵🇹', sea:'bei Lissabon', lat:38.963, lon:-9.417},
+  {id:'pontadelgada', name:'Ponta Delgada', country:'Portugal', flag:'🇵🇹', sea:'Azoren', lat:37.741, lon:-25.668},
+  {id:'nazare', name:'Nazaré', country:'Portugal', flag:'🇵🇹', sea:'Silberküste', lat:39.601, lon:-9.07},
+  {id:'stjeandeluz', name:'Saint-Jean-de-Luz', country:'Frankreich', flag:'🇫🇷', sea:'Baskenland', lat:43.388, lon:-1.659},
+  {id:'lagrandemotte', name:'La Grande-Motte', country:'Frankreich', flag:'🇫🇷', sea:'Languedoc', lat:43.56, lon:4.087},
+  {id:'hyeres', name:'Hyères', country:'Frankreich', flag:'🇫🇷', sea:'Côte d’Azur', lat:43.116, lon:6.132},
+  {id:'menton', name:'Menton', country:'Frankreich', flag:'🇫🇷', sea:'Côte d’Azur', lat:43.775, lon:7.503},
+  {id:'calvi', name:'Calvi', country:'Frankreich', flag:'🇫🇷', sea:'Korsika', lat:42.567, lon:8.757},
+  {id:'arcachon', name:'Arcachon', country:'Frankreich', flag:'🇫🇷', sea:'Atlantikküste', lat:44.658, lon:-1.168},
+  {id:'tropea', name:'Tropea', country:'Italien', flag:'🇮🇹', sea:'Kalabrien', lat:38.677, lon:15.897},
+  {id:'otranto', name:'Otranto', country:'Italien', flag:'🇮🇹', sea:'Salento', lat:40.146, lon:18.491},
+  {id:'gallipoli', name:'Gallipoli', country:'Italien', flag:'🇮🇹', sea:'Salento', lat:40.055, lon:17.992},
+  {id:'vieste', name:'Vieste', country:'Italien', flag:'🇮🇹', sea:'Gargano', lat:41.882, lon:16.179},
+  {id:'elba', name:'Elba', country:'Italien', flag:'🇮🇹', sea:'Toskana', lat:42.792, lon:10.193},
+  {id:'fortedeimarmi', name:'Forte dei Marmi', country:'Italien', flag:'🇮🇹', sea:'Versilia', lat:43.959, lon:10.166},
+  {id:'portofino', name:'Portofino', country:'Italien', flag:'🇮🇹', sea:'Ligurien', lat:44.303, lon:9.21},
+  {id:'ischia', name:'Ischia', country:'Italien', flag:'🇮🇹', sea:'Golf v. Neapel', lat:40.731, lon:13.951},
+  {id:'procida', name:'Procida', country:'Italien', flag:'🇮🇹', sea:'Golf v. Neapel', lat:40.761, lon:14.018},
+  {id:'jesolo', name:'Lido di Jesolo', country:'Italien', flag:'🇮🇹', sea:'Adria', lat:45.505, lon:12.633},
+  {id:'alghero', name:'Alghero', country:'Italien', flag:'🇮🇹', sea:'Sardinien', lat:40.56, lon:8.319},
+  {id:'cefalu', name:'Cefalù', country:'Italien', flag:'🇮🇹', sea:'Sizilien', lat:38.039, lon:14.023},
+  {id:'lampedusa', name:'Lampedusa', country:'Italien', flag:'🇮🇹', sea:'Pelagische Inseln', lat:35.508, lon:12.592},
+  {id:'naxos', name:'Naxos', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:37.106, lon:25.377},
+  {id:'paros', name:'Paros', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:37.084, lon:25.152},
+  {id:'milos', name:'Milos', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:36.689, lon:24.418},
+  {id:'kefalonia', name:'Kefalonia', country:'Griechenland', flag:'🇬🇷', sea:'Ionische Inseln', lat:38.175, lon:20.489},
+  {id:'lefkada', name:'Lefkada', country:'Griechenland', flag:'🇬🇷', sea:'Ionische Inseln', lat:38.711, lon:20.64},
+  {id:'skiathos', name:'Skiathos', country:'Griechenland', flag:'🇬🇷', sea:'Sporaden', lat:39.163, lon:23.49},
+  {id:'halkidiki', name:'Chalkidiki', country:'Griechenland', flag:'🇬🇷', sea:'bei Thessaloniki', lat:40.3, lon:23.3},
+  {id:'chania', name:'Chania', country:'Griechenland', flag:'🇬🇷', sea:'Kreta', lat:35.512, lon:24.018},
+  {id:'parga', name:'Parga', country:'Griechenland', flag:'🇬🇷', sea:'Epirus', lat:39.284, lon:20.401},
+  {id:'thassos', name:'Thassos', country:'Griechenland', flag:'🇬🇷', sea:'Nordägäis', lat:40.69, lon:24.65},
+  {id:'samos', name:'Samos', country:'Griechenland', flag:'🇬🇷', sea:'Ostägäis', lat:37.754, lon:26.977},
+  {id:'athen', name:'Athener Riviera', country:'Griechenland', flag:'🇬🇷', sea:'bei Athen', lat:37.847, lon:23.758},
+  {id:'rovinj', name:'Rovinj', country:'Kroatien', flag:'🇭🇷', sea:'Istrien', lat:45.081, lon:13.638},
+  {id:'pula', name:'Pula', country:'Kroatien', flag:'🇭🇷', sea:'Istrien', lat:44.867, lon:13.85},
+  {id:'opatija', name:'Opatija', country:'Kroatien', flag:'🇭🇷', sea:'Kvarner', lat:45.339, lon:14.305},
+  {id:'makarska', name:'Makarska', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:43.297, lon:17.017},
+  {id:'brac', name:'Brač (Bol)', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:43.262, lon:16.654},
+  {id:'korcula', name:'Korčula', country:'Kroatien', flag:'🇭🇷', sea:'Dalmatien', lat:42.961, lon:17.136},
+  {id:'fethiye', name:'Fethiye / Ölüdeniz', country:'Türkei', flag:'🇹🇷', sea:'Türk. Ägäis', lat:36.622, lon:29.116},
+  {id:'marmaris', name:'Marmaris', country:'Türkei', flag:'🇹🇷', sea:'Türk. Ägäis', lat:36.855, lon:28.274},
+  {id:'kusadasi', name:'Kuşadası', country:'Türkei', flag:'🇹🇷', sea:'Türk. Ägäis', lat:37.86, lon:27.259},
+  {id:'cesme', name:'Çeşme', country:'Türkei', flag:'🇹🇷', sea:'Türk. Ägäis', lat:38.324, lon:26.304},
+  {id:'alanya', name:'Alanya', country:'Türkei', flag:'🇹🇷', sea:'Türk. Riviera', lat:36.544, lon:31.999},
+  {id:'kas', name:'Kaş', country:'Türkei', flag:'🇹🇷', sea:'Türk. Riviera', lat:36.201, lon:29.64},
+  {id:'limassol', name:'Limassol', country:'Zypern', flag:'🇨🇾', sea:'Südzypern', lat:34.684, lon:33.038},
+  {id:'protaras', name:'Protaras', country:'Zypern', flag:'🇨🇾', sea:'Ostzypern', lat:35.012, lon:34.058},
+  {id:'gozo', name:'Gozo', country:'Malta', flag:'🇲🇹', sea:'Gozo', lat:36.044, lon:14.241},
+  {id:'kotor', name:'Kotor', country:'Montenegro', flag:'🇲🇪', sea:'Bucht von Kotor', lat:42.424, lon:18.771},
+  {id:'sarande', name:'Sarandë', country:'Albanien', flag:'🇦🇱', sea:'Albanische Riviera', lat:39.875, lon:20.005},
+  {id:'ksamil', name:'Ksamil', country:'Albanien', flag:'🇦🇱', sea:'Albanische Riviera', lat:39.767, lon:20.001},
+  {id:'durres', name:'Durrës', country:'Albanien', flag:'🇦🇱', sea:'Adria', lat:41.323, lon:19.446},
+  {id:'piran', name:'Piran', country:'Slowenien', flag:'🇸🇮', sea:'Istrien', lat:45.528, lon:13.568},
+  {id:'sunnybeach', name:'Sonnenstrand', country:'Bulgarien', flag:'🇧🇬', sea:'Schwarzes Meer', lat:42.694, lon:27.712},
+  {id:'varna', name:'Varna', country:'Bulgarien', flag:'🇧🇬', sea:'Schwarzes Meer', lat:43.204, lon:27.91},
+  {id:'mamaia', name:'Mamaia', country:'Rumänien', flag:'🇷🇴', sea:'Schwarzes Meer', lat:44.252, lon:28.621},
+  {id:'ruegen', name:'Rügen', country:'Deutschland', flag:'🇩🇪', sea:'Ostsee', lat:54.401, lon:13.43},
+  {id:'usedom', name:'Usedom', country:'Deutschland', flag:'🇩🇪', sea:'Ostsee', lat:53.962, lon:14.072},
+  {id:'timmendorf', name:'Timmendorfer Strand', country:'Deutschland', flag:'🇩🇪', sea:'Ostsee', lat:54.001, lon:10.78},
+  {id:'stpeterording', name:'St. Peter-Ording', country:'Deutschland', flag:'🇩🇪', sea:'Nordsee', lat:54.305, lon:8.638},
+  {id:'norderney', name:'Norderney', country:'Deutschland', flag:'🇩🇪', sea:'Nordsee', lat:53.707, lon:7.152},
+  {id:'zandvoort', name:'Zandvoort', country:'Niederlande', flag:'🇳🇱', sea:'Nordsee', lat:52.371, lon:4.532},
+  {id:'newquay', name:'Newquay', country:'England', flag:'🇬🇧', sea:'Cornwall', lat:50.415, lon:-5.092},
+  {id:'hurghada', name:'Hurghada', country:'Ägypten', flag:'🇪🇬', sea:'Rotes Meer', lat:27.18, lon:33.84},
+  {id:'sharm', name:'Sharm el-Sheikh', country:'Ägypten', flag:'🇪🇬', sea:'Rotes Meer', lat:27.915, lon:34.33},
+  {id:'marsaalam', name:'Marsa Alam', country:'Ägypten', flag:'🇪🇬', sea:'Rotes Meer', lat:25.069, lon:34.89},
+  {id:'dahab', name:'Dahab', country:'Ägypten', flag:'🇪🇬', sea:'Rotes Meer', lat:28.501, lon:34.513},
+  {id:'elgouna', name:'El Gouna', country:'Ägypten', flag:'🇪🇬', sea:'Rotes Meer', lat:27.398, lon:33.678},
+  {id:'djerba', name:'Djerba', country:'Tunesien', flag:'🇹🇳', sea:'Insel Djerba', lat:33.807, lon:10.845},
+  {id:'hammamet', name:'Hammamet', country:'Tunesien', flag:'🇹🇳', sea:'Golf von Hammamet', lat:36.4, lon:10.612},
+  {id:'sousse', name:'Sousse', country:'Tunesien', flag:'🇹🇳', sea:'Sahel', lat:35.825, lon:10.636},
+  {id:'monastir', name:'Monastir', country:'Tunesien', flag:'🇹🇳', sea:'Sahel', lat:35.764, lon:10.811},
+  {id:'agadir', name:'Agadir', country:'Marokko', flag:'🇲🇦', sea:'Atlantikkueste', lat:30.421, lon:-9.598},
+  {id:'essaouira', name:'Essaouira', country:'Marokko', flag:'🇲🇦', sea:'Atlantikkueste', lat:31.512, lon:-9.77},
+  {id:'tanger', name:'Tanger', country:'Marokko', flag:'🇲🇦', sea:'Mittelmeer', lat:35.768, lon:-5.8},
+  {id:'telaviv', name:'Tel Aviv', country:'Israel', flag:'🇮🇱', sea:'Mittelmeer', lat:32.084, lon:34.781},
+  {id:'eilat', name:'Eilat', country:'Israel', flag:'🇮🇱', sea:'Rotes Meer', lat:29.557, lon:34.952},
+  {id:'aqaba', name:'Aqaba', country:'Jordanien', flag:'🇯🇴', sea:'Rotes Meer', lat:29.527, lon:35.004},
+  {id:'beirut', name:'Beirut', country:'Libanon', flag:'🇱🇧', sea:'Mittelmeer', lat:33.888, lon:35.495},
+  {id:'dubai', name:'Dubai', country:'VAE', flag:'🇦🇪', sea:'Persischer Golf', lat:25.204, lon:55.27},
+  {id:'abudhabi', name:'Abu Dhabi', country:'VAE', flag:'🇦🇪', sea:'Persischer Golf', lat:24.453, lon:54.397},
+  {id:'rasalkhaimah', name:'Ras Al Khaimah', country:'VAE', flag:'🇦🇪', sea:'Persischer Golf', lat:25.789, lon:55.943},
+  {id:'sal', name:'Sal', country:'Kap Verde', flag:'🇨🇻', sea:'Atlantik', lat:16.752, lon:-22.949},
+  {id:'boavista', name:'Boa Vista', country:'Kap Verde', flag:'🇨🇻', sea:'Atlantik', lat:16.08, lon:-22.81},
+  {id:'muscat', name:'Muscat', country:'Oman', flag:'🇴🇲', sea:'Golf von Oman', lat:23.588, lon:58.408},
+  {id:'salalah', name:'Salalah', country:'Oman', flag:'🇴🇲', sea:'Arabisches Meer', lat:17.038, lon:54.091},
+  {id:'banjul', name:'Banjul', country:'Gambia', flag:'🇬🇲', sea:'Atlantik', lat:13.338, lon:-16.652},
+];
+
+/* =========================================================
+   2) Konstanten / Hilfen
+   ========================================================= */
+const AXIS_MIN = 8, AXIS_MAX = 30;        // °C-Bereich der Mess-Skala
+const SEA_HIST_START = '2022-01-01';       // Meerwasser-Historie (stündlich → kompakter Zeitraum)
+const SEA_HIST_END   = '2024-12-31';
+const AIR_HIST_START = '2015-01-01';       // Luft-Historie (täglich → günstig, längerer Zeitraum)
+const AIR_HIST_END   = '2024-12-31';
+const DAY_WINDOW = 3;                       // ± Tage bei "Bestimmter Tag"
+
+// Kalender ohne Schaltjahr → Tag-Index 0..364 (für climate.json "d")
+const MONTH_LEN = [31,28,31,30,31,30,31,31,30,31,30,31];
+const MONTH_OFF = (()=>{ let o=[],s=0; for(const n of MONTH_LEN){ o.push(s); s+=n; } return o; })();
+function dayIndex(month, day){ return MONTH_OFF[month-1] + Math.min(day, MONTH_LEN[month-1]) - 1; }
+
+const MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MONTHS_ABBR = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+// Farb-Stops der Skala (müssen zum CSS-Verlauf passen)
+const SCALE = [
+  [8,[61,78,168]],[12,[47,111,176]],[16,[31,147,168]],[19,[26,171,134]],
+  [22,[124,194,79]],[25,[242,191,60]],[27,[238,138,58]],[30,[225,90,76]]
+];
+function scaleColor(t){
+  if(t==null||isNaN(t)) return '#7c97a0';
+  const x = Math.max(AXIS_MIN, Math.min(AXIS_MAX, t));
+  for(let i=0;i<SCALE.length-1;i++){
+    const [a,ca]=SCALE[i], [b,cb]=SCALE[i+1];
+    if(x>=a && x<=b){
+      const f=(x-a)/(b-a);
+      const r=Math.round(ca[0]+(cb[0]-ca[0])*f);
+      const g=Math.round(ca[1]+(cb[1]-ca[1])*f);
+      const bl=Math.round(ca[2]+(cb[2]-ca[2])*f);
+      return `rgb(${r},${g},${bl})`;
+    }
+  }
+  return '#7c97a0';
+}
+const pos = t => (Math.max(AXIS_MIN,Math.min(AXIS_MAX, t)) - AXIS_MIN) / (AXIS_MAX-AXIS_MIN) * 100;
+const f1 = x => (Math.round(x*10)/10).toFixed(1).replace('.', ',');
+const f0 = x => String(Math.round(x));
+
+function verdict(t){
+  if(t==null) return ['—', 'var(--mist)'];
+  if(t>=25) return ['Sehr warm — Baden wie im Pool', scaleColor(t)];
+  if(t>=22) return ['Warm — angenehmes Baden', scaleColor(t)];
+  if(t>=19) return ['Erfrischend — gut zum Schwimmen', scaleColor(t)];
+  if(t>=16) return ['Frisch — kurzes Bad', scaleColor(t)];
+  if(t>=13) return ['Kalt — nur für Abgehärtete', scaleColor(t)];
+  return ['Sehr kalt — eher nicht baden', scaleColor(t)];
+}
+
+async function fetchJSON(url, ms=14000){
+  const c = new AbortController();
+  const id = setTimeout(()=>c.abort(), ms);
+  try{
+    const r = await fetch(url, {signal:c.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return await r.json();
+  } finally { clearTimeout(id); }
+}
+
+/* =========================================================
+   3) Zustand + Caches
+   ========================================================= */
+const now = new Date();
+const state = {
+  mode:'month',
+  month: now.getMonth()+1,   // aktueller Monat als Start
+  day: 15,
+  sort:'sea',                // Ø Meer im gewählten Zeitraum, wärmste zuerst
+  query:'',
+  country:'',                // '' = alle Länder
+  minSea:7,                  // 7 = aus
+  airMin:7, airMax:40,       // Luft-Bereich; 7..40 = aus
+  maxRain:20,                // 20 = aus
+  maxFlight:8,               // 8 = aus
+  origin:'ALL',              // Flug ab (ALL = bestes DACH-Angebot)
+  directOnly:false,
+};
+const current = {};  // id -> {sea, air}   (live "jetzt")
+const history = {};  // id -> {air, sea}   (Fallback, falls kein climate.json)
+const cardEls = {};  // id -> {root, els...}
+let CLIMATE = null;  // id -> {...}
+let FLIGHTS = null;  // origin -> Bit-Kette "0/1" je Ziel (Direktflug?), in DESTINATIONS-Reihenfolge
+const ORIGINS = {
+  GRZ:{label:'Graz',grp:'AT',lat:46.991,lon:15.44},
+  INN:{label:'Innsbruck',grp:'AT',lat:47.26,lon:11.344},
+  KLU:{label:'Klagenfurt',grp:'AT',lat:46.643,lon:14.338},
+  LNZ:{label:'Linz',grp:'AT',lat:48.233,lon:14.188},
+  SZG:{label:'Salzburg',grp:'AT',lat:47.793,lon:13.004},
+  VIE:{label:'Wien',grp:'AT',lat:48.11,lon:16.57},
+  BER:{label:'Berlin',grp:'DE',lat:52.56,lon:13.288},
+  BRE:{label:'Bremen',grp:'DE',lat:53.048,lon:8.787},
+  DTM:{label:'Dortmund',grp:'DE',lat:51.518,lon:7.612},
+  DRS:{label:'Dresden',grp:'DE',lat:51.133,lon:13.767},
+  DUS:{label:'Düsseldorf',grp:'DE',lat:51.29,lon:6.767},
+  FRA:{label:'Frankfurt',grp:'DE',lat:50.033,lon:8.571},
+  FDH:{label:'Friedrichshafen',grp:'DE',lat:47.671,lon:9.511},
+  HAM:{label:'Hamburg',grp:'DE',lat:53.63,lon:9.988},
+  HAJ:{label:'Hannover',grp:'DE',lat:52.461,lon:9.685},
+  FKB:{label:'Karlsruhe/Baden-Baden',grp:'DE',lat:48.779,lon:8.08},
+  CGN:{label:'Köln/Bonn',grp:'DE',lat:50.866,lon:7.143},
+  LEJ:{label:'Leipzig/Halle',grp:'DE',lat:51.424,lon:12.236},
+  FMM:{label:'Memmingen',grp:'DE',lat:47.989,lon:10.24},
+  MUC:{label:'München',grp:'DE',lat:48.354,lon:11.786},
+  FMO:{label:'Münster/Osnabrück',grp:'DE',lat:52.135,lon:7.685},
+  NUE:{label:'Nürnberg',grp:'DE',lat:49.499,lon:11.078},
+  PAD:{label:'Paderborn',grp:'DE',lat:51.614,lon:8.616},
+  SCN:{label:'Saarbrücken',grp:'DE',lat:49.215,lon:7.11},
+  STR:{label:'Stuttgart',grp:'DE',lat:48.69,lon:9.222},
+  BSL:{label:'Basel',grp:'CH',lat:47.59,lon:7.529},
+  GVA:{label:'Genf',grp:'CH',lat:46.238,lon:6.109},
+  ZRH:{label:'Zürich',grp:'CH',lat:47.465,lon:8.549},
+};
+const DEST_IDX = {};
+DESTINATIONS.forEach((d,i)=>{ DEST_IDX[d.id]=i; });
+function haversine(la1,lo1,la2,lo2){
+  const R=6371, r=Math.PI/180;
+  const dla=(la2-la1)*r, dlo=(lo2-lo1)*r;
+  const a=Math.sin(dla/2)**2 + Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dlo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function flightHours(o,d){ return haversine(o.lat,o.lon,d.lat,d.lon)/800 + 0.75; }
+let FORECAST = null; // id -> {air:[{d,t,c,w}], sea:[{d,t}]}
+
+// WMO-Wettercode -> Symbol; bei viel Wind -> Wind-Symbol
+function wxIcon(code, windKmh){
+  if(windKmh!=null && windKmh>=40) return '💨';
+  if(code==null) return '·';
+  if(code===0) return '☀️';
+  if(code<=2) return '🌤️';
+  if(code===3) return '☁️';
+  if(code===45||code===48) return '🌫️';
+  if(code>=51 && code<=67) return '🌧️';
+  if(code>=71 && code<=77) return '❄️';
+  if(code>=80 && code<=82) return '🌧️';
+  if(code>=85 && code<=86) return '❄️';
+  if(code>=95) return '⛈️';
+  return '☁️';
+}
+const DOW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+// Formatierung
+const fT1 = x => f1(x)+'°';   // 27,6°
+const fT0 = x => f0(x)+'°';   // 28°
+function hhmm(mins){ if(mins==null) return '–'; const h=Math.floor(mins/60), m=mins%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
+function fmtHours(h){ if(h==null) return '–'; const H=Math.floor(h), M=Math.round((h-H)*60); return M? `${H}h${M<10?'0':''}${M}` : `${H}h`; }
+// Min–Ø–Max-Zeile: Ø fett, Min kühl-blau, Max warm-orange, Abstand ums –
+function rowMMM(avg, mn, mx, fmt){
+  return `Ø <b>${fmt(avg)}</b><span class="sep">·</span><span class="tmin">${fmt(mn)}</span><span class="dash">–</span><span class="tmax">${fmt(mx)}</span>`;
+}
+
+/* =========================================================
+   4) Karten bauen (einmalig)
+   ========================================================= */
+const grid = document.getElementById('grid');
+function buildCards(){
+  const frag = document.createDocumentFragment();
+  DESTINATIONS.forEach(d=>{
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.dataset.id = d.id;
+    // Untertitel: Land · Region (Meeresname weg; Region nur wenn sie etwas hinzufügt)
+    const region = (d.sea && d.sea.toLowerCase()!==d.country.toLowerCase()) ? d.sea : '';
+    const meta = region ? `${d.country} · ${region}` : d.country;
+    el.innerHTML = `
+      <div class="card-h">
+        <span class="flag">${d.flag}</span>
+        <div class="card-ht">
+          <h3 class="name">${d.name}</h3>
+          <div class="sea-label mono">${meta}</div>
+        </div>
+        <div class="now">
+          <div class="now-v mono">–</div>
+          <div class="now-l">Ø Meer</div>
+        </div>
+      </div>
+      <div class="gauge">
+        <div class="axis">
+          <div class="mask mask-l"></div>
+          <div class="mask mask-r"></div>
+          <div class="avg"></div>
+        </div>
+        <div class="axis-ends mono"><span>${AXIS_MIN}°</span><span>${AXIS_MAX}°</span></div>
+      </div>
+      <div class="reads">
+        <div class="read-row"><span class="rk">Meer</span><span class="rv mono loading sea-stats">lädt…</span></div>
+        <div class="read-row"><span class="rk">Luft</span><span class="rv mono loading air-stats">lädt…</span></div>
+        <div class="read-row"><span class="rk">Sonne</span><span class="rv mono sun-stats">·</span></div>
+        <div class="read-row"><span class="rk">Regen</span><span class="rv mono rain-stats">·</span></div>
+        <div class="read-row"><span class="rk">Hell</span><span class="rv mono light-stats">·</span></div>
+        <div class="read-row"><span class="rk">Flug</span><span class="rv mono flight-stats">·</span></div>
+      </div>
+      <div class="fc" hidden>
+        <div class="fc-h">Vorhersage <span class="fc-sub">· 16 Tage</span></div>
+        <div class="fc-block">
+          <div class="fc-lbl mono">Luft</div>
+          <div class="fc-grid fc-air"></div>
+        </div>
+        <div class="fc-block">
+          <div class="fc-lbl mono">Meer</div>
+          <div class="fc-grid fc-sea"></div>
+        </div>
+      </div>
+      <div class="verdict">…</div>`;
+    frag.appendChild(el);
+    cardEls[d.id] = {
+      root: el,
+      now: el.querySelector('.now'),
+      nowV: el.querySelector('.now-v'),
+      nowL: el.querySelector('.now-l'),
+      maskL: el.querySelector('.mask-l'),
+      maskR: el.querySelector('.mask-r'),
+      avg: el.querySelector('.avg'),
+      sea: el.querySelector('.sea-stats'),
+      air: el.querySelector('.air-stats'),
+      sun: el.querySelector('.sun-stats'),
+      rain: el.querySelector('.rain-stats'),
+      light: el.querySelector('.light-stats'),
+      flight: el.querySelector('.flight-stats'),
+      fc: el.querySelector('.fc'),
+      fcAir: el.querySelector('.fc-air'),
+      fcSea: el.querySelector('.fc-sea'),
+      verdict: el.querySelector('.verdict'),
+    };
+  });
+  grid.appendChild(frag);
+}
+
+/* =========================================================
+   5) (Live-„jetzt"-Werte entfernt – nur noch typische Werte aus dem Datensatz)
+   ========================================================= */
+
+/* =========================================================
+   6) Historie (faul pro Karte, einmal geladen → für alle Monate gecached)
+   ========================================================= */
+let active = 0; const queue = [];
+function enqueue(task){ queue.push(task); pump(); }
+function pump(){
+  while(active < 5 && queue.length){
+    const t = queue.shift(); active++;
+    t().catch(()=>{}).finally(()=>{ active--; pump(); });
+  }
+}
+
+function loadHistory(id){
+  if(history[id]) return;                  // schon geladen / lädt
+  history[id] = { air:'loading', sea:'loading' };
+  const d = DESTINATIONS.find(x=>x.id===id);
+  enqueue(async ()=>{
+    const airURL = `https://archive-api.open-meteo.com/v1/archive?latitude=${d.lat}&longitude=${d.lon}&start_date=${AIR_HIST_START}&end_date=${AIR_HIST_END}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean&timezone=auto`;
+    const seaURL = `https://marine-api.open-meteo.com/v1/marine?latitude=${d.lat}&longitude=${d.lon}&start_date=${SEA_HIST_START}&end_date=${SEA_HIST_END}&hourly=sea_surface_temperature&cell_selection=sea&timeformat=unixtime`;
+    const [air, sea] = await Promise.allSettled([fetchJSON(airURL), fetchJSON(seaURL)]);
+
+    // Luft (ISO-Tagesdaten)
+    if(air.status==='fulfilled' && air.value.daily){
+      const dd = air.value.daily;
+      history[id].air = {
+        time: dd.time, max: dd.temperature_2m_max,
+        min: dd.temperature_2m_min, mean: dd.temperature_2m_mean
+      };
+    } else history[id].air = 'error';
+
+    // Meer (Unixtime stündlich)
+    if(sea.status==='fulfilled' && sea.value.hourly){
+      history[id].sea = { time: sea.value.hourly.time, sst: sea.value.hourly.sea_surface_temperature };
+    } else history[id].sea = 'error';
+
+    updateStats(id);
+  });
+}
+
+// Predicate für aktuellen Zeitraum
+function inPeriod(month, day){
+  if(state.mode==='month') return month === state.month;
+  return month === state.month && Math.abs(day - state.day) <= DAY_WINDOW;
+}
+
+// Stats für den gewählten Zeitraum: bevorzugt aus dem Datensatz (climate.json),
+// sonst Fallback aus live geladener Historie.
+function periodStats(id){
+  if(CLIMATE && CLIMATE[id]){
+    const C = CLIMATE[id];
+    const isMonth = state.mode==='month';
+    const di = isMonth ? dayIndex(state.month, 15) : dayIndex(state.month, state.day);
+    const pick = (arr) => { if(!arr) return null; const v = isMonth ? arr.m[state.month-1] : arr.d[di]; return v || null; };
+    const s = pick(C.sea), a = pick(C.air), su = pick(C.sun), rn = pick(C.rain);
+    return {
+      sea: s ? { min:s[0], avg:s[1], max:s[2] } : null,
+      air: a ? { min:a[0], avg:a[1], max:a[2], lo:a[3], hi:a[4] } : null,
+      sun: (su!=null) ? su : null,
+      rain: rn ? { mm:rn[0], frac:rn[1] } : null,
+      sr: C.sr ? C.sr[di] : null,
+      ss: C.ss ? C.ss[di] : null
+    };
+  }
+  const cs = computeStats(id);
+  if(cs) return { sea:cs.sea, air:cs.air, sun:null, rain:null, sr:null, ss:null };
+  return null;
+}
+
+function computeStats(id){
+  const h = history[id];
+  if(!h) return null;
+  const out = { sea:null, air:null };
+
+  // Luft
+  if(h.air && h.air!=='loading' && h.air!=='error'){
+    let mins=[], maxs=[], means=[];
+    const T=h.air.time;
+    for(let i=0;i<T.length;i++){
+      const m = +T[i].slice(5,7), dy = +T[i].slice(8,10);
+      if(inPeriod(m,dy)){
+        if(h.air.min[i]!=null) mins.push(h.air.min[i]);
+        if(h.air.max[i]!=null) maxs.push(h.air.max[i]);
+        if(h.air.mean[i]!=null) means.push(h.air.mean[i]);
+      }
+    }
+    if(means.length) out.air = {
+      min: Math.min(...mins), max: Math.max(...maxs),
+      avg: means.reduce((a,b)=>a+b,0)/means.length,
+      lo:  mins.reduce((a,b)=>a+b,0)/mins.length,   // Ø Tagestief
+      hi:  maxs.reduce((a,b)=>a+b,0)/maxs.length     // Ø Tageshoch
+    };
+  }
+  // Meer
+  if(h.sea && h.sea!=='loading' && h.sea!=='error'){
+    let vals=[]; const T=h.sea.time, S=h.sea.sst;
+    for(let i=0;i<T.length;i++){
+      const v=S[i]; if(v==null) continue;
+      const dObj = new Date(T[i]*1000);
+      const m = dObj.getUTCMonth()+1, dy = dObj.getUTCDate();
+      if(inPeriod(m,dy)) vals.push(v);
+    }
+    if(vals.length) out.sea = {
+      min: Math.min(...vals), max: Math.max(...vals),
+      avg: vals.reduce((a,b)=>a+b,0)/vals.length
+    };
+  }
+  return out;
+}
+
+function updateStats(id){
+  const c = cardEls[id]; if(!c) return;
+  const h = history[id];
+  const s = periodStats(id);
+  const isMonth = state.mode==='month';
+  const dlen = MONTH_LEN[state.month-1];
+
+  // ---- Große Zahl folgt der Sortierung ----
+  if(state.sort==='sea' || state.sort==='air'){
+    c.now.style.visibility = 'visible';
+    const useAir = state.sort==='air';
+    const v = useAir ? (s && s.air ? s.air.avg : null) : (s && s.sea ? s.sea.avg : null);
+    c.nowL.textContent = useAir ? 'Ø Luft' : 'Ø Meer';
+    if(v==null){ c.nowV.textContent='–'; c.nowV.style.color='var(--mist)'; }
+    else { c.nowV.textContent = (useAir?f0(v):f1(v))+'°'; c.nowV.style.color = scaleColor(v); }
+  } else {
+    c.now.style.visibility = 'hidden';   // bei Name/Land keine Zahl
+  }
+
+  // ---- Meer-Zeile + Skala + Urteil ----
+  if(s && s.sea){
+    c.sea.classList.remove('loading');
+    c.sea.innerHTML = rowMMM(s.sea.avg, s.sea.min, s.sea.max, fT1);
+    c.maskL.style.width = pos(s.sea.min)+'%';
+    c.maskR.style.left  = pos(s.sea.max)+'%';
+    c.avg.style.left = pos(s.sea.avg)+'%'; c.avg.style.background='#fff'; c.avg.style.opacity=1;
+    const [txt,col] = verdict(s.sea.avg);
+    c.verdict.textContent = txt; c.verdict.style.color = col;
+  } else {
+    c.sea.classList.remove('loading');
+    c.sea.textContent = (h && h.sea==='error') ? 'derzeit keine Meerwasserdaten' : 'lädt…';
+    if(h && h.sea==='loading') c.sea.classList.add('loading');
+    c.maskL.style.width='100%'; c.maskR.style.left='100%'; c.avg.style.opacity=0;
+    if(!(h && h.sea==='loading')){ c.verdict.textContent='—'; c.verdict.style.color='var(--mist)'; }
+  }
+
+  // ---- Luft-Zeile (typische Tagesspanne, kein "jetzt") ----
+  if(s && s.air){
+    c.air.classList.remove('loading');
+    c.air.innerHTML = rowMMM(s.air.avg, s.air.lo, s.air.hi, fT0);
+  } else {
+    c.air.textContent = (h && h.air==='error') ? 'keine Luftdaten' : 'lädt…';
+    if(h && h.air==='loading') c.air.classList.add('loading'); else c.air.classList.remove('loading');
+  }
+
+  // ---- Sonne ----
+  if(s && s.sun!=null) c.sun.innerHTML = `<b>${f1(s.sun)} h</b><span class="sub">${isMonth?' / Tag':''}</span>`;
+  else c.sun.textContent = '–';
+
+  // ---- Regen ----
+  if(s && s.rain){
+    if(isMonth){
+      const tage = Math.round(s.rain.frac*dlen), mm = Math.round(s.rain.mm*dlen);
+      c.rain.innerHTML = `<b>${tage} Regentage</b><span class="sep">·</span><span class="sub">${mm} mm/Monat</span>`;
+    } else {
+      c.rain.innerHTML = `<b>${Math.round(s.rain.frac*100)}%</b> <span class="sub">Regenrisiko · ${f1(s.rain.mm)} mm</span>`;
+    }
+  } else c.rain.textContent = '–';
+
+  // ---- Hell (Sonnenauf-/-untergang + Tageslänge) ----
+  if(s && s.sr!=null && s.ss!=null){
+    const dl = (s.ss - s.sr)/60;
+    c.light.innerHTML = `${hhmm(s.sr)} <span class="dash">–</span> ${hhmm(s.ss)} <span class="sub">· ${f1(dl)} h hell</span>`;
+  } else c.light.textContent = '–';
+
+  // ---- Flug ----
+  updateFlight(id);
+}
+
+function flightInfo(id){
+  if(!FLIGHTS) return null;
+  const d = DESTINATIONS[DEST_IDX[id]]; if(!d) return null;
+  if(state.origin==='ALL'){
+    let best=null, anyDirect=false;
+    for(const k in ORIGINS){
+      const o=ORIGINS[k]; const h=flightHours(o,d);
+      if(best==null || h<best) best=h;
+      const bits=FLIGHTS[k]; if(bits && bits[DEST_IDX[id]]==='1') anyDirect=true;
+    }
+    return { h:best, direct:anyDirect, label:'ab DACH' };
+  }
+  const o=ORIGINS[state.origin]; if(!o) return null;
+  const bits=FLIGHTS[state.origin];
+  const direct = !!(bits && bits[DEST_IDX[id]]==='1');
+  return { h:flightHours(o,d), direct:direct, label:'ab '+o.label };
+}
+
+function updateFlight(id){
+  const c = cardEls[id]; if(!c || !c.flight) return;
+  const f = flightInfo(id);
+  if(!f){ c.flight.textContent = '–'; return; }
+  const tag = f.direct ? '<span class="tmin">direkt</span>' : '<span class="sub">umsteigen</span>';
+  c.flight.innerHTML = `✈ ${f.label} <b>~${fmtHours(f.h)}</b><span class="sep">·</span>${tag}`;
+}
+
+function dayCellAir(x){
+  const dow = DOW[new Date(x.d+'T12:00').getDay()];
+  const pop = (x.p!=null) ? `<span class="fc-pop">💧 ${x.p}%</span>` : '';
+  return `<div class="fc-day"><span class="fc-dow">${dow}</span><span class="fc-ico">${wxIcon(x.c, x.w)}</span><span class="fc-t">${f0(x.t)}°</span>${pop}</div>`;
+}
+function dayCellSea(x){
+  const dow = DOW[new Date(x.d+'T12:00').getDay()];
+  return `<div class="fc-day"><span class="fc-dow">${dow}</span><span class="fc-ico">🌊</span><span class="fc-t">${f1(x.t)}°</span></div>`;
+}
+function renderForecast(id){
+  const c = cardEls[id]; if(!c || !c.fc) return;
+  const f = FORECAST && FORECAST[id];
+  if(!f || (!f.air && !f.sea)){ c.fc.hidden = true; return; }
+  c.fc.hidden = false;
+  c.fcAir.innerHTML = (f.air||[]).slice(0,16).map(dayCellAir).join('');
+  c.fcSea.innerHTML = (f.sea||[]).slice(0,16).map(dayCellSea).join('');
+}
+
+/* Lazy-Loading per IntersectionObserver */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const id = e.target.dataset.id;
+      loadHistory(id);
+      io.unobserve(e.target);
+    }
+  });
+}, { rootMargin:'300px 0px' });
+
+/* =========================================================
+   7) Filter + Sortierung + Statuszeile
+   ========================================================= */
+function rainDays30(ps){ return ps && ps.rain ? ps.rain.frac*30 : null; }
+
+function applyView(){
+  const q = state.query.trim().toLowerCase();
+  let list = DESTINATIONS.filter(d=>{
+    if(q && !(d.name.toLowerCase().includes(q) || d.country.toLowerCase().includes(q) || d.sea.toLowerCase().includes(q))) return false;
+    if(state.country && d.country !== state.country) return false;
+    const fi = (state.directOnly || state.maxFlight<8) ? flightInfo(d.id) : null;
+    if(state.directOnly){ if(!fi || !fi.direct) return false; }
+    if(state.maxFlight < 8){ if(!fi || fi.h > state.maxFlight) return false; }
+    const ps = periodStats(d.id);
+    if(state.minSea > 7){ const v=ps&&ps.sea?ps.sea.avg:null; if(v==null || v<state.minSea) return false; }
+    if(state.airMin > 7 || state.airMax < 40){ const v=ps&&ps.air?ps.air.avg:null; if(v==null || v<state.airMin || v>state.airMax) return false; }
+    if(state.maxRain < 20){ const r=rainDays30(ps); if(r==null || r>state.maxRain) return false; }
+    return true;
+  });
+
+  const metric = (d)=>{
+    const ps = periodStats(d.id);
+    if(state.sort==='air') return ps && ps.air ? ps.air.avg : null;
+    return ps && ps.sea ? ps.sea.avg : null;
+  };
+  list.sort((a,b)=>{
+    if(state.sort==='name') return a.name.localeCompare(b.name,'de');
+    if(state.sort==='country') return a.country.localeCompare(b.country,'de') || a.name.localeCompare(b.name,'de');
+    const va = metric(a), vb = metric(b);
+    if(va==null && vb==null) return 0;
+    if(va==null) return 1;
+    if(vb==null) return -1;
+    return vb - va;
+  });
+
+  const visible = new Set(list.map(d=>d.id));
+  list.forEach((d,i)=>{ const c=cardEls[d.id]; c.root.style.order=i; c.root.classList.remove('hidden'); });
+  DESTINATIONS.forEach(d=>{ if(!visible.has(d.id)) cardEls[d.id].root.classList.add('hidden'); });
+
+  updateStatus(list.length);
+}
+
+function updateStatus(count){
+  const period = state.mode==='month' ? MONTHS_FULL[state.month-1] : `${state.day}. ${MONTHS_FULL[state.month-1]}`;
+  document.getElementById('status-period').textContent = period;
+  const sortTxt = state.sort==='name' ? 'Name' : state.sort==='country' ? 'Land'
+                : state.sort==='air' ? 'Luft Ø' : 'Meer Ø';
+  const dayNote = state.mode==='day' ? ` (±${DAY_WINDOW} Tage)` : '';
+  document.getElementById('status-meta').textContent = `${count} Ziele · sortiert nach ${sortTxt}${dayNote}`;
+}
+
+function recomputeAll(){
+  DESTINATIONS.forEach(d=>{ if(CLIMATE && CLIMATE[d.id] || history[d.id]) updateStats(d.id); });
+}
+
+/* =========================================================
+   8) Steuerung
+   ========================================================= */
+function buildMonths(){
+  const box = document.getElementById('months');
+  MONTHS_ABBR.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=m; b.dataset.m=i+1;
+    b.setAttribute('aria-pressed', String(i+1===state.month));
+    b.addEventListener('click', ()=>{
+      state.month=i+1;
+      [...box.children].forEach(ch=>ch.setAttribute('aria-pressed', String(+ch.dataset.m===state.month)));
+      recomputeAll(); applyView();
+    });
+    box.appendChild(b);
+  });
+}
+function visibleCount(){ return DESTINATIONS.filter(d=>!cardEls[d.id].root.classList.contains('hidden')).length; }
+
+function showBanner(msg){ const b=document.getElementById('banner'); b.textContent=msg; b.classList.add('on'); }
+
+function buildCountryFilter(){
+  const sel = document.getElementById('country');
+  const countries = [...new Set(DESTINATIONS.map(d=>d.country))].sort((a,b)=>a.localeCompare(b,'de'));
+  sel.innerHTML = '<option value="">Alle Länder</option>' + countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function activeFilterCount(){
+  let n=0;
+  if(state.directOnly) n++;
+  if(state.country) n++;
+  if(state.minSea>7) n++;
+  if(state.airMin>7||state.airMax<40) n++;
+  if(state.maxRain<20) n++;
+  if(state.maxFlight<8) n++;
+  return n;
+}
+function updateFilterBtn(){
+  const tf=document.getElementById('togglefilters'); if(!tf) return;
+  const open=tf.getAttribute('aria-expanded')==='true';
+  const n=activeFilterCount();
+  tf.textContent = `Weitere Filter${n?` (${n})`:''} ${open?'▴':'▾'}`;
+}
+
+function syncFilterLabels(){
+  const seaOn = state.minSea>7, airOn = (state.airMin>7 || state.airMax<40), rainOn = state.maxRain<20, flightOn = state.maxFlight<8;
+  document.getElementById('seaval').textContent   = seaOn ? state.minSea+'°' : 'aus';
+  document.getElementById('airval').textContent   = airOn ? `${state.airMin}–${state.airMax}°` : 'aus';
+  document.getElementById('rainval').textContent  = rainOn ? state.maxRain+' Tage' : 'aus';
+  document.getElementById('flightval').textContent= flightOn ? fmtHours(state.maxFlight) : 'aus';
+  document.getElementById('filt-sea').classList.toggle('off', !seaOn);
+  document.getElementById('filt-air').classList.toggle('off', !airOn);
+  document.getElementById('filt-rain').classList.toggle('off', !rainOn);
+  document.getElementById('filt-flight').classList.toggle('off', !flightOn);
+  document.getElementById('minsea').value=state.minSea;
+  document.getElementById('airmin').value=state.airMin;
+  document.getElementById('airmax').value=state.airMax;
+  document.getElementById('maxrain').value=state.maxRain;
+  document.getElementById('maxflight').value=state.maxFlight;
+  updateFilterBtn();
+}
+
+function wireControls(){
+  document.getElementById('sort').addEventListener('change', e=>{ state.sort=e.target.value; recomputeAll(); applyView(); });
+  document.getElementById('origin').addEventListener('change', e=>{ state.origin=e.target.value; DESTINATIONS.forEach(d=>updateFlight(d.id)); applyView(); });
+  document.getElementById('directonly').addEventListener('change', e=>{ state.directOnly=e.target.checked; updateFilterBtn(); applyView(); });
+  document.getElementById('country').addEventListener('change', e=>{ state.country=e.target.value; updateFilterBtn(); applyView(); });
+
+  const tf=document.getElementById('togglefilters'), fp=document.getElementById('filters');
+  tf.addEventListener('click', ()=>{
+    const willOpen = fp.hasAttribute('hidden');
+    if(willOpen) fp.removeAttribute('hidden'); else fp.setAttribute('hidden','');
+    tf.setAttribute('aria-expanded', String(willOpen));
+    updateFilterBtn();
+  });
+
+  // Einzel-Slider + Stepper
+  const SINGLE = {
+    sea:  { key:'minSea',   el:'minsea',   step:1   },
+    rain: { key:'maxRain',  el:'maxrain',  step:1   },
+    flight:{ key:'maxFlight',el:'maxflight',step:0.5 },
+  };
+  Object.entries(SINGLE).forEach(([f,cfg])=>{
+    document.getElementById(cfg.el).addEventListener('input', e=>{ state[cfg.key]=+e.target.value; syncFilterLabels(); applyView(); });
+  });
+  document.querySelectorAll('.fbtn').forEach(btn=>{
+    const f=btn.dataset.f; if(!SINGLE[f]) return;
+    btn.addEventListener('click', ()=>{
+      const cfg=SINGLE[f], inp=document.getElementById(cfg.el);
+      const v = Math.max(+inp.min, Math.min(+inp.max, state[cfg.key] + (+btn.dataset.d)*cfg.step));
+      state[cfg.key]=v; syncFilterLabels(); applyView();
+    });
+  });
+
+  // Luft-Bereich (zwei Regler, nicht kreuzen)
+  const amin=document.getElementById('airmin'), amax=document.getElementById('airmax');
+  amin.addEventListener('input', ()=>{ let lo=+amin.value, hi=+amax.value; if(lo>hi){ lo=hi; amin.value=lo; } state.airMin=lo; syncFilterLabels(); applyView(); });
+  amax.addEventListener('input', ()=>{ let hi=+amax.value, lo=+amin.value; if(hi<lo){ hi=lo; amax.value=hi; } state.airMax=hi; syncFilterLabels(); applyView(); });
+
+  let to; document.getElementById('search').addEventListener('input', e=>{
+    clearTimeout(to); to=setTimeout(()=>{ state.query=e.target.value; applyView(); }, 140);
+  });
+  buildCountryFilter();
+  syncFilterLabels();
+}
+
+/* =========================================================
+   9) Start
+   ========================================================= */
+async function loadClimate(){
+  try{
+    const r = await fetch('climate.json', {cache:'no-cache'});
+    if(!r.ok) throw new Error('no climate.json');
+    CLIMATE = await r.json();
+    recomputeAll();
+    applyView();
+  }catch(e){
+    // Kein Datensatz vorhanden → Fallback: Historie faul pro Karte laden
+    CLIMATE = null;
+    DESTINATIONS.forEach(d=> io.observe(cardEls[d.id].root));
+  }
+}
+
+async function loadFlights(){
+  try{
+    const r = await fetch('flights.json', {cache:'no-cache'});
+    if(!r.ok) throw 0;
+    FLIGHTS = await r.json();
+    DESTINATIONS.forEach(d=>updateFlight(d.id));
+    applyView();
+  }catch(e){ FLIGHTS = null; }
+}
+
+async function loadForecast(){
+  try{
+    const r = await fetch('forecast.json', {cache:'no-cache'});
+    if(!r.ok) throw 0;
+    FORECAST = await r.json();
+    DESTINATIONS.forEach(d=>renderForecast(d.id));
+  }catch(e){ FORECAST = null; }
+}
+
+buildCards();
+buildMonths();
+wireControls();
+updateStatus(DESTINATIONS.length);
+loadClimate();   // typische Werte aus Datensatz (sofort sortierbar) – sonst Fallback
+loadFlights();   // Flugzeiten ab DACH-Städten
+loadForecast();  // 16-Tage-Vorhersage (täglich aktualisiert)
+</script>
+</body>
+</html>
