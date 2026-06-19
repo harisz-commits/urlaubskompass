@@ -10,10 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{--deep:#04141d;--deep2:#06202c;--panel:#0a2733;--line:rgba(178,224,224,.12);--foam:#e9f4f3;--mist:#8aa9b2;--mist-dim:#5d7e88;--focus:#6fe0d4;--maxw:760px}
-  *{box-sizing:border-box}html,body{margin:0}
-  body{background:linear-gradient(180deg,var(--deep),var(--deep2));background-attachment:fixed;color:var(--foam);
+  *{box-sizing:border-box}html{background:var(--deep2)}html,body{margin:0}
+  body{background:linear-gradient(180deg,var(--deep),var(--deep2));color:var(--foam);
     font-family:"Space Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;line-height:1.62;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:var(--maxw);margin:0 auto;padding:28px 20px 64px}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:28px 20px calc(64px + 20px + env(safe-area-inset-bottom, 0px))}
   a{color:var(--focus)}
   .top{display:flex;align-items:center;gap:10px;padding:6px 0 22px}
   .top .glyph{font-size:20px}.top b{font-size:17px}
@@ -103,8 +103,11 @@
     <p>Die Website wird ausschließlich verschlüsselt über HTTPS (TLS) ausgeliefert. Wir treffen angemessene technische und organisatorische Maßnahmen zum Schutz deiner Daten. Wir behalten uns vor, diese Datenschutzerklärung anzupassen, wenn sich Dienste oder die Rechtslage ändern; es gilt die jeweils hier veröffentlichte Fassung.</p>
 
     <hr />
-    <p class="muted" style="font-size:13px">Hinweis: Diese Datenschutzerklärung wurde sorgfältig und individuell für Seazons erstellt, stellt jedoch keine Rechtsberatung dar. Da ihr Google Ads, Meta-Pixel und einen Newsletter einsetzt, empfiehlt sich vor dem Echtbetrieb eine kurze Prüfung (z. B. WKO-Beratung oder Anwalt) sowie das Abschließen der Auftragsverarbeitungsverträge bei MailerLite, Google und Meta.</p>
+    <p class="muted" style="font-size:13px">
+      <a href="/">Startseite</a> · <a href="/impressum.html">Impressum</a> ·
+      <a href="#" onclick="if(window.SeazonsConsent){SeazonsConsent.open();}return false;">Cookie-Einstellungen</a>
+    </p>
   </div>
-  <script src="/consent.js" defer></script>
+  <script src="/consent.js?v=2" defer></script>
 </body>
 </html>
