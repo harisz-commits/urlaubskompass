@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Urlaubskompass — wo ist das Meer warm?</title>
+<title>Seazons — wo ist das Meer warm?</title>
+<meta name="description" content="Seazons zeigt dir, wo das Meer in deinem Reisemonat warm genug zum Baden ist – mit Klimawerten, 16-Tage-Vorhersage und Flugzeiten ab Wien, München und ganz DACH." />
+<!-- Reichweitenmessung: Plausible (cookielos, ohne personenbezogene Daten). Konto auf plausible.io anlegen, Domain seazons.de hinzufuegen. -->
+<script defer data-domain="seazons.de" src="https://plausible.io/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -212,7 +215,7 @@
       <div class="bar-top">
         <div class="brand">
           <span class="glyph">🌊</span>
-          <b>Urlaubskompass</b>
+          <b>Seazons</b>
           <span class="tag">das beste Badeziel für deinen Monat</span>
         </div>
         <div class="spacer"></div>
@@ -341,12 +344,23 @@
   </main>
 
   <footer class="wrap">
+    <p style="margin:0 0 10px">
+      <a href="/impressum.html">Impressum</a> ·
+      <a href="/datenschutz.html">Datenschutz</a> ·
+      <a href="#" onclick="if(window.SeazonsConsent){SeazonsConsent.open();}return false;">Cookie-Einstellungen</a>
+    </p>
+    <p style="margin:0 0 10px">
+      Seazons enthält Werbe-/Affiliate-Links: Buchst du über einen solchen Link (z. B. Hotel oder Ausflug),
+      erhalten wir ggf. eine Provision – für dich ohne Aufpreis.
+    </p>
     Meerwasser sprechen wir hier durchgehend an — gemeint ist die Wassertemperatur direkt an der Oberfläche.
     Daten: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
     (Copernicus Marine / ERA5-Ocean &amp; DWD ICON für Meerwasser, ERA5 für Lufttemperatur).
     Alle Werte sind typische Klimawerte aus mehreren Jahren (Ø, mit Tagesspanne Tief–Hoch) — also Näherungswerte (ca.). Flugzeiten sind Schätzungen aus der Distanz; Direktflug-Angaben basieren auf OpenFlights und können saisonal abweichen.
-    Liste leicht erweiterbar: weitere Ziele einfach im <code>DESTINATIONS</code>-Array ergänzen.
+    <p style="margin:14px 0 0; color:var(--mist-dim)">© <span id="yr"></span> greenbody e.U. · Seazons</p>
   </footer>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+  <script src="/consent.js" defer></script>
 
 <script>
 "use strict";
