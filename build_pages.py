@@ -279,6 +279,7 @@ def build_country(country, meta, clim, flights):
              "item":f"https://seazons.de/land/{slug}.html"}]}
 
     page=PAGE.replace("__TITLE__", esc(title)).replace("__DESC__", esc(desc))
+    page=page.replace("__CANON__", f"https://seazons.de/land/{slug}.html")
     page=page.replace("__BODY__", body).replace("__CSS__", CSS)
     page=page.replace("__JSONLD__", json.dumps([faq_ld, bc_ld], ensure_ascii=False))
     page=page.replace("__DATE__", today).replace("__LOADER__", LOADER)
@@ -291,7 +292,7 @@ PAGE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>__TITLE__</title>
 <meta name="description" content="__DESC__" />
-<link rel="canonical" href="https://seazons.de/" />
+<link rel="canonical" href="__CANON__" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
