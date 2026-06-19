@@ -288,8 +288,9 @@ def finalize(b):
         air_m.append(air_stat(g(b['amin'],idx),g(b['amax'],idx),g(b['amean'],idx)))
         sun_m.append(sun_stat(g(b['sun'],idx)))
         rain_m.append(rain_stat(g(b['rain'],idx)))
-    return {'sea':{'m':sea_m,'d':sea_d},'air':{'m':air_m,'d':air_d},
-            'sun':{'m':sun_m,'d':sun_d},'rain':{'m':rain_m,'d':rain_d},'sr':sr_d,'ss':ss_d}
+    # Tagesarrays (d) werden von der App nicht mehr genutzt -> weglassen (schlanke Datei).
+    return {'sea':{'m':sea_m},'air':{'m':air_m},
+            'sun':{'m':sun_m},'rain':{'m':rain_m},'sr':sr_d,'ss':ss_d}
 
 def build_one(lat, lon):
     b=new_buckets()
