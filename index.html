@@ -879,7 +879,7 @@ function updateStats(id){
     const v = useAir ? (s && s.air ? s.air.avg : null) : (s && s.sea ? s.sea.avg : null);
     c.nowL.textContent = useAir ? 'Ø Luft' : 'Ø Meer';
     if(v==null){ c.nowV.textContent='–'; c.nowV.style.color='var(--mist)'; }
-    else { c.nowV.textContent = (useAir?f0(v):f1(v))+'°'; c.nowV.style.color = scaleColor(v); }
+    else { c.nowV.textContent = f0(v)+'°'; c.nowV.style.color = scaleColor(v); }
   } else {
     c.now.style.visibility = 'hidden';   // bei Name/Land keine Zahl
   }
@@ -887,7 +887,7 @@ function updateStats(id){
   // ---- Meer-Zeile + Skala + Urteil ----
   if(s && s.sea){
     c.sea.classList.remove('loading');
-    c.sea.innerHTML = rowMMM(s.sea.avg, s.sea.min, s.sea.max, fT1);
+    c.sea.innerHTML = rowMMM(s.sea.avg, s.sea.min, s.sea.max, fT0);
     c.maskL.style.width = pos(s.sea.min)+'%';
     c.maskR.style.left  = pos(s.sea.max)+'%';
     c.avg.style.left = pos(s.sea.avg)+'%'; c.avg.style.background='#fff'; c.avg.style.opacity=1;
@@ -967,7 +967,7 @@ function dayCellAir(x){
 }
 function dayCellSea(x){
   const dow = DOW[new Date(x.d+'T12:00').getDay()];
-  return `<div class="fc-day"><span class="fc-dow">${dow}</span><span class="fc-ico">🌊</span><span class="fc-t">${f1(x.t)}°</span></div>`;
+  return `<div class="fc-day"><span class="fc-dow">${dow}</span><span class="fc-ico">🌊</span><span class="fc-t">${f0(x.t)}°</span></div>`;
 }
 function renderForecast(id){
   const c = cardEls[id]; if(!c || !c.fc) return;
