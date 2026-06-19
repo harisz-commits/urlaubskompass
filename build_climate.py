@@ -311,27 +311,43 @@ def save(path, data):
     os.replace(tmp, path)
 
 def main():
-    out=sys.argv[sys.argv.index('--out')+1] if '--out' in sys.argv else None
+    argv=sys.argv
+    out=argv[argv.index('--out')+1] if '--out' in argv else None
+    refresh=None
+    if '--refresh' in argv:
+        try: refresh=int(argv[argv.index('--refresh')+1])
+        except Exception: refresh=40
     result={}
     if out and os.path.exists(out):
         try: result=json.load(open(out,encoding='utf-8'))
         except Exception: result={}
-    done={k for k,v in result.items() if isinstance(v,dict) and 'sun' in v}   # v2-fertig
-    todo=[d for d in DEST if d[0] not in done]
-    sys.stderr.write(f"Bereits fertig: {len(done)} / {len(DEST)}.  Zu holen: {len(todo)}.\n")
     n=len(DEST)
-    for i,(id_,lat,lon) in enumerate(DEST,1):
-        if id_ in done:
-            continue
-        sys.stderr.write(f"[{i:2d}/{n}] {id_} ..."); sys.stderr.flush()
+    if refresh is not None:
+        # Rollierender Refresh: neue/unfertige Ziele zuerst, dann die am laengsten
+        # nicht aktualisierten (_ts aufsteigend). Pro Lauf maximal `refresh` Ziele,
+        # damit das Tageslimit nicht gesprengt wird.
+        def fertig(d): 
+            v=result.get(d[0]); return isinstance(v,dict) and 'sun' in v
+        missing=[d for d in DEST if not fertig(d)]
+        present=[d for d in DEST if fertig(d)]
+        present.sort(key=lambda d: result[d[0]].get('_ts',0))
+        targets=(missing+present)[:max(refresh,len(missing))]
+        sys.stderr.write(f"Refresh-Modus: {len(targets)} Ziele (neu/unfertig: {len(missing)}).\n")
+    else:
+        done={k for k,v in result.items() if isinstance(v,dict) and 'sun' in v}   # v2-fertig
+        targets=[d for d in DEST if d[0] not in done]
+        sys.stderr.write(f"Bereits fertig: {len(done)} / {n}.  Zu holen: {len(targets)}.\n")
+    for i,(id_,lat,lon) in enumerate(targets,1):
+        sys.stderr.write(f"[{i:2d}/{len(targets)}] {id_} ..."); sys.stderr.flush()
         try:
-            result[id_]=build_one(lat,lon)
+            data1=build_one(lat,lon)
         except RateLimited:
             sys.stderr.write("\n\nLIMIT erreicht. Fortschritt gespeichert.\n"
-                             f"Fertig: {len(done)+sum(1 for d in todo if d[0] in result)} / {n}.\n"
                              "Bitte SPAETER nochmal starten (macht dort weiter).\n")
             if out: save(out, result)
             sys.exit(0)
+        data1['_ts']=int(time.time())
+        result[id_]=data1
         if out: save(out, result)     # nach jedem Ort sichern
         sys.stderr.write(" ok\n")
         time.sleep(3)
