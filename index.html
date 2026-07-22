@@ -308,7 +308,7 @@
         <div class="filt" id="filt-flight">
           <span class="fk">Flugzeit, max.</span>
           <button class="fbtn" data-f="flight" data-d="-1" aria-label="weniger">−</button>
-          <input type="range" id="maxflight" min="1" max="8" step="0.5" value="8" />
+          <input type="range" id="maxflight" min="1" max="16" step="0.5" value="16" />
           <button class="fbtn" data-f="flight" data-d="1" aria-label="mehr">+</button>
           <span class="fv mono" id="flightval">aus</span>
         </div>
@@ -520,6 +520,106 @@ const DESTINATIONS = [
   {id:'muscat', name:'Muscat', country:'Oman', flag:'🇴🇲', sea:'Golf von Oman', lat:23.588, lon:58.408},
   {id:'salalah', name:'Salalah', country:'Oman', flag:'🇴🇲', sea:'Arabisches Meer', lat:17.038, lon:54.091},
   {id:'banjul', name:'Banjul', country:'Gambia', flag:'🇬🇲', sea:'Atlantik', lat:13.338, lon:-16.652},
+  {id:'male', name:'Malediven (Malé-Atoll)', country:'Malediven', flag:'🇲🇻', sea:'Indischer Ozean', lat:4.175, lon:73.509},
+  {id:'mauritius', name:'Mauritius (Flic en Flac)', country:'Mauritius', flag:'🇲🇺', sea:'Indischer Ozean', lat:-20.274, lon:57.363},
+  {id:'mahe', name:'Seychellen (Mahé)', country:'Seychellen', flag:'🇸🇨', sea:'Indischer Ozean', lat:-4.62, lon:55.45},
+  {id:'praslin', name:'Praslin', country:'Seychellen', flag:'🇸🇨', sea:'Indischer Ozean', lat:-4.318, lon:55.74},
+  {id:'sansibar', name:'Sansibar (Nungwi)', country:'Tansania', flag:'🇹🇿', sea:'Indischer Ozean', lat:-5.726, lon:39.297},
+  {id:'diani', name:'Diani Beach', country:'Kenia', flag:'🇰🇪', sea:'Indischer Ozean', lat:-4.279, lon:39.591},
+  {id:'mombasa', name:'Mombasa', country:'Kenia', flag:'🇰🇪', sea:'Indischer Ozean', lat:-4.043, lon:39.668},
+  {id:'nosybe', name:'Nosy Be', country:'Madagaskar', flag:'🇲🇬', sea:'Indischer Ozean', lat:-13.32, lon:48.26},
+  {id:'bentota', name:'Bentota', country:'Sri Lanka', flag:'🇱🇰', sea:'Indischer Ozean', lat:6.42, lon:79.995},
+  {id:'mirissa', name:'Mirissa', country:'Sri Lanka', flag:'🇱🇰', sea:'Indischer Ozean', lat:5.945, lon:80.459},
+  {id:'goa', name:'Goa', country:'Indien', flag:'🇮🇳', sea:'Arabisches Meer', lat:15.55, lon:73.75},
+  {id:'phuket', name:'Phuket', country:'Thailand', flag:'🇹🇭', sea:'Andamanensee', lat:7.888, lon:98.298},
+  {id:'krabi', name:'Krabi (Ao Nang)', country:'Thailand', flag:'🇹🇭', sea:'Andamanensee', lat:8.032, lon:98.822},
+  {id:'khaolak', name:'Khao Lak', country:'Thailand', flag:'🇹🇭', sea:'Andamanensee', lat:8.639, lon:98.245},
+  {id:'kohsamui', name:'Koh Samui', country:'Thailand', flag:'🇹🇭', sea:'Golf von Thailand', lat:9.512, lon:100.061},
+  {id:'kohphangan', name:'Koh Phangan', country:'Thailand', flag:'🇹🇭', sea:'Golf von Thailand', lat:9.733, lon:100.023},
+  {id:'huahin', name:'Hua Hin', country:'Thailand', flag:'🇹🇭', sea:'Golf von Thailand', lat:12.57, lon:99.958},
+  {id:'pattaya', name:'Pattaya', country:'Thailand', flag:'🇹🇭', sea:'Golf von Thailand', lat:12.927, lon:100.877},
+  {id:'danang', name:'Da Nang', country:'Vietnam', flag:'🇻🇳', sea:'Südchinesisches Meer', lat:16.054, lon:108.243},
+  {id:'nhatrang', name:'Nha Trang', country:'Vietnam', flag:'🇻🇳', sea:'Südchinesisches Meer', lat:12.238, lon:109.196},
+  {id:'phuquoc', name:'Phu Quoc', country:'Vietnam', flag:'🇻🇳', sea:'Golf von Thailand', lat:10.223, lon:103.957},
+  {id:'bali', name:'Bali (Seminyak)', country:'Indonesien', flag:'🇮🇩', sea:'Indischer Ozean', lat:-8.69, lon:115.166},
+  {id:'lombok', name:'Lombok / Gili-Inseln', country:'Indonesien', flag:'🇮🇩', sea:'Indischer Ozean', lat:-8.65, lon:116.32},
+  {id:'langkawi', name:'Langkawi', country:'Malaysia', flag:'🇲🇾', sea:'Andamanensee', lat:6.35, lon:99.8},
+  {id:'penang', name:'Penang', country:'Malaysia', flag:'🇲🇾', sea:'Straße von Malakka', lat:5.47, lon:100.24},
+  {id:'boracay', name:'Boracay', country:'Philippinen', flag:'🇵🇭', sea:'Sulusee', lat:11.968, lon:121.924},
+  {id:'elnido', name:'El Nido (Palawan)', country:'Philippinen', flag:'🇵🇭', sea:'Sulusee', lat:11.182, lon:119.393},
+  {id:'cebu', name:'Cebu (Mactan)', country:'Philippinen', flag:'🇵🇭', sea:'Visayas-See', lat:10.31, lon:123.98},
+  {id:'sanya', name:'Sanya (Hainan)', country:'China', flag:'🇨🇳', sea:'Südchinesisches Meer', lat:18.253, lon:109.512},
+  {id:'okinawa', name:'Okinawa', country:'Japan', flag:'🇯🇵', sea:'Ostchinesisches Meer', lat:26.334, lon:127.805},
+  {id:'puntacana', name:'Punta Cana', country:'Dominikanische Republik', flag:'🇩🇴', sea:'Karibik', lat:18.582, lon:-68.405},
+  {id:'puertoplata', name:'Puerto Plata', country:'Dominikanische Republik', flag:'🇩🇴', sea:'Atlantik', lat:19.79, lon:-70.687},
+  {id:'varadero', name:'Varadero', country:'Kuba', flag:'🇨🇺', sea:'Karibik', lat:23.155, lon:-81.245},
+  {id:'cayococo', name:'Cayo Coco', country:'Kuba', flag:'🇨🇺', sea:'Atlantik', lat:22.51, lon:-78.47},
+  {id:'montegobay', name:'Montego Bay', country:'Jamaika', flag:'🇯🇲', sea:'Karibik', lat:18.471, lon:-77.919},
+  {id:'negril', name:'Negril', country:'Jamaika', flag:'🇯🇲', sea:'Karibik', lat:18.268, lon:-78.348},
+  {id:'cancun', name:'Cancún', country:'Mexiko', flag:'🇲🇽', sea:'Karibik', lat:21.161, lon:-86.851},
+  {id:'playadelcarmen', name:'Playa del Carmen', country:'Mexiko', flag:'🇲🇽', sea:'Karibik', lat:20.629, lon:-87.073},
+  {id:'tulum', name:'Tulum', country:'Mexiko', flag:'🇲🇽', sea:'Karibik', lat:20.211, lon:-87.429},
+  {id:'puertovallarta', name:'Puerto Vallarta', country:'Mexiko', flag:'🇲🇽', sea:'Pazifik', lat:20.653, lon:-105.225},
+  {id:'barbados', name:'Barbados (Bridgetown)', country:'Barbados', flag:'🇧🇧', sea:'Karibik', lat:13.1, lon:-59.616},
+  {id:'curacao', name:'Curaçao', country:'Curaçao', flag:'🇨🇼', sea:'Karibik', lat:12.108, lon:-68.935},
+  {id:'aruba', name:'Aruba', country:'Aruba', flag:'🇦🇼', sea:'Karibik', lat:12.567, lon:-70.043},
+  {id:'nassau', name:'Nassau', country:'Bahamas', flag:'🇧🇸', sea:'Atlantik', lat:25.06, lon:-77.345},
+  {id:'antigua', name:'Antigua', country:'Antigua und Barbuda', flag:'🇦🇬', sea:'Karibik', lat:17.124, lon:-61.846},
+  {id:'stlucia', name:'St. Lucia', country:'St. Lucia', flag:'🇱🇨', sea:'Karibik', lat:14.07, lon:-60.95},
+  {id:'martinique', name:'Martinique', country:'Martinique', flag:'🇲🇶', sea:'Karibik', lat:14.6, lon:-61.073},
+  {id:'guadeloupe', name:'Guadeloupe', country:'Guadeloupe', flag:'🇬🇵', sea:'Karibik', lat:16.229, lon:-61.379},
+  {id:'sanjuan', name:'San Juan', country:'Puerto Rico', flag:'🇵🇷', sea:'Karibik', lat:18.466, lon:-66.106},
+  {id:'turkscaicos', name:'Turks & Caicos', country:'Turks- und Caicosinseln', flag:'🇹🇨', sea:'Karibik', lat:21.787, lon:-72.27},
+  {id:'tamarindo', name:'Tamarindo', country:'Costa Rica', flag:'🇨🇷', sea:'Pazifik', lat:10.299, lon:-85.84},
+  {id:'bocasdeltoro', name:'Bocas del Toro', country:'Panama', flag:'🇵🇦', sea:'Karibik', lat:9.34, lon:-82.242},
+  {id:'ambergris', name:'Ambergris Caye', country:'Belize', flag:'🇧🇿', sea:'Karibik', lat:17.92, lon:-87.96},
+  {id:'cartagena', name:'Cartagena', country:'Kolumbien', flag:'🇨🇴', sea:'Karibik', lat:10.4, lon:-75.51},
+  {id:'miami', name:'Miami Beach', country:'USA', flag:'🇺🇸', sea:'Atlantik', lat:25.79, lon:-80.13},
+  {id:'keywest', name:'Key West', country:'USA', flag:'🇺🇸', sea:'Golf von Mexiko', lat:24.556, lon:-81.78},
+  {id:'honolulu', name:'Honolulu (Hawaii)', country:'USA', flag:'🇺🇸', sea:'Pazifik', lat:21.28, lon:-157.83},
+  {id:'sandiego', name:'San Diego', country:'USA', flag:'🇺🇸', sea:'Pazifik', lat:32.716, lon:-117.165},
+  {id:'rio', name:'Rio de Janeiro (Copacabana)', country:'Brasilien', flag:'🇧🇷', sea:'Atlantik', lat:-22.97, lon:-43.183},
+  {id:'salvador', name:'Salvador da Bahia', country:'Brasilien', flag:'🇧🇷', sea:'Atlantik', lat:-12.98, lon:-38.47},
+  {id:'fortaleza', name:'Fortaleza', country:'Brasilien', flag:'🇧🇷', sea:'Atlantik', lat:-3.73, lon:-38.52},
+  {id:'florianopolis', name:'Florianópolis', country:'Brasilien', flag:'🇧🇷', sea:'Atlantik', lat:-27.596, lon:-48.549},
+  {id:'kapstadt', name:'Kapstadt (Camps Bay)', country:'Südafrika', flag:'🇿🇦', sea:'Atlantik', lat:-33.951, lon:18.378},
+  {id:'durban', name:'Durban', country:'Südafrika', flag:'🇿🇦', sea:'Indischer Ozean', lat:-29.858, lon:31.021},
+  {id:'saly', name:'Saly', country:'Senegal', flag:'🇸🇳', sea:'Atlantik', lat:14.44, lon:-17.01},
+  {id:'vilanculos', name:'Vilanculos', country:'Mosambik', flag:'🇲🇿', sea:'Indischer Ozean', lat:-21.998, lon:35.313},
+  {id:'doha', name:'Doha', country:'Katar', flag:'🇶🇦', sea:'Persischer Golf', lat:25.286, lon:51.534},
+  {id:'manama', name:'Manama', country:'Bahrain', flag:'🇧🇭', sea:'Persischer Golf', lat:26.229, lon:50.586},
+  {id:'sydney', name:'Sydney (Bondi Beach)', country:'Australien', flag:'🇦🇺', sea:'Pazifik', lat:-33.891, lon:151.277},
+  {id:'goldcoast', name:'Gold Coast', country:'Australien', flag:'🇦🇺', sea:'Pazifik', lat:-28.0, lon:153.43},
+  {id:'cairns', name:'Cairns', country:'Australien', flag:'🇦🇺', sea:'Korallenmeer', lat:-16.87, lon:145.75},
+  {id:'perth', name:'Perth', country:'Australien', flag:'🇦🇺', sea:'Indischer Ozean', lat:-31.95, lon:115.86},
+  {id:'nadi', name:'Fidschi (Nadi)', country:'Fidschi', flag:'🇫🇯', sea:'Pazifik', lat:-17.798, lon:177.42},
+  {id:'borabora', name:'Bora Bora', country:'Französisch-Polynesien', flag:'🇵🇫', sea:'Pazifik', lat:-16.5, lon:-151.741},
+  {id:'tahiti', name:'Tahiti', country:'Französisch-Polynesien', flag:'🇵🇫', sea:'Pazifik', lat:-17.535, lon:-149.57},
+  {id:'lapalma', name:'La Palma', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:28.68, lon:-17.764},
+  {id:'lagomera', name:'La Gomera', country:'Spanien', flag:'🇪🇸', sea:'Kanaren', lat:28.09, lon:-17.11},
+  {id:'benidorm', name:'Benidorm', country:'Spanien', flag:'🇪🇸', sea:'Costa Blanca', lat:38.535, lon:-0.131},
+  {id:'nerja', name:'Nerja', country:'Spanien', flag:'🇪🇸', sea:'Costa del Sol', lat:36.745, lon:-3.874},
+  {id:'roses', name:'Roses', country:'Spanien', flag:'🇪🇸', sea:'Costa Brava', lat:42.262, lon:3.176},
+  {id:'portimao', name:'Portimão', country:'Portugal', flag:'🇵🇹', sea:'Algarve', lat:37.121, lon:-8.538},
+  {id:'tavira', name:'Tavira', country:'Portugal', flag:'🇵🇹', sea:'Algarve', lat:37.127, lon:-7.649},
+  {id:'amalfi', name:'Amalfi', country:'Italien', flag:'🇮🇹', sea:'Amalfiküste', lat:40.634, lon:14.603},
+  {id:'olbia', name:'Costa Smeralda (Olbia)', country:'Italien', flag:'🇮🇹', sea:'Sardinien', lat:40.923, lon:9.498},
+  {id:'siracusa', name:'Syrakus', country:'Italien', flag:'🇮🇹', sea:'Sizilien', lat:37.075, lon:15.287},
+  {id:'sanvito', name:'San Vito Lo Capo', country:'Italien', flag:'🇮🇹', sea:'Sizilien', lat:38.174, lon:12.735},
+  {id:'ios', name:'Ios', country:'Griechenland', flag:'🇬🇷', sea:'Kykladen', lat:36.723, lon:25.283},
+  {id:'karpathos', name:'Karpathos', country:'Griechenland', flag:'🇬🇷', sea:'Dodekanes', lat:35.507, lon:27.213},
+  {id:'chios', name:'Chios', country:'Griechenland', flag:'🇬🇷', sea:'Ägäis', lat:38.368, lon:26.136},
+  {id:'lesbos', name:'Lesbos', country:'Griechenland', flag:'🇬🇷', sea:'Ägäis', lat:39.1, lon:26.554},
+  {id:'kalamata', name:'Kalamata', country:'Griechenland', flag:'🇬🇷', sea:'Peloponnes', lat:37.038, lon:22.113},
+  {id:'sibenik', name:'Šibenik', country:'Kroatien', flag:'🇭🇷', sea:'Adria', lat:43.735, lon:15.89},
+  {id:'belek', name:'Belek', country:'Türkei', flag:'🇹🇷', sea:'Türkische Riviera', lat:36.863, lon:31.056},
+  {id:'kemer', name:'Kemer', country:'Türkei', flag:'🇹🇷', sea:'Türkische Riviera', lat:36.602, lon:30.56},
+  {id:'ulcinj', name:'Ulcinj', country:'Montenegro', flag:'🇲🇪', sea:'Adria', lat:41.929, lon:19.224},
+  {id:'vlora', name:'Vlora', country:'Albanien', flag:'🇦🇱', sea:'Adria', lat:40.466, lon:19.491},
+  {id:'goldstrand', name:'Goldstrand', country:'Bulgarien', flag:'🇧🇬', sea:'Schwarzes Meer', lat:43.283, lon:28.042},
+  {id:'portovecchio', name:'Porto-Vecchio', country:'Frankreich', flag:'🇫🇷', sea:'Korsika', lat:41.591, lon:9.279},
+  {id:'collioure', name:'Collioure', country:'Frankreich', flag:'🇫🇷', sea:'Côte Vermeille', lat:42.526, lon:3.083},
+  {id:'batumi', name:'Batumi', country:'Georgien', flag:'🇬🇪', sea:'Schwarzes Meer', lat:41.646, lon:41.64},
 ];
 
 /* =========================================================
@@ -598,7 +698,7 @@ const state = {
   minSea:7,                  // 7 = aus
   airMin:7, airMax:40,       // Luft-Bereich; 7..40 = aus
   maxRain:20,                // 20 = aus
-  maxFlight:8,               // 8 = aus
+  maxFlight:16,              // 16 = aus
   origin:'ALL',              // Flug ab (ALL = bestes DACH-Angebot)
   directOnly:false,
 };
@@ -999,9 +1099,9 @@ function applyView(){
   let list = DESTINATIONS.filter(d=>{
     if(q && !(d.name.toLowerCase().includes(q) || d.country.toLowerCase().includes(q) || d.sea.toLowerCase().includes(q))) return false;
     if(state.country && d.country !== state.country) return false;
-    const fi = (state.directOnly || state.maxFlight<8) ? flightInfo(d.id) : null;
+    const fi = (state.directOnly || state.maxFlight<16) ? flightInfo(d.id) : null;
     if(state.directOnly){ if(!fi || !fi.direct) return false; }
-    if(state.maxFlight < 8){ if(!fi || fi.h > state.maxFlight) return false; }
+    if(state.maxFlight < 16){ if(!fi || fi.h > state.maxFlight) return false; }
     const ps = periodStats(d.id);
     if(state.minSea > 7){ const v=ps&&ps.sea?ps.sea.avg:null; if(v==null || v<state.minSea) return false; }
     if(state.airMin > 7 || state.airMax < 40){ const v=ps&&ps.air?ps.air.avg:null; if(v==null || v<state.airMin || v>state.airMax) return false; }
@@ -1078,7 +1178,7 @@ function activeFilterCount(){
   if(state.minSea>7) n++;
   if(state.airMin>7||state.airMax<40) n++;
   if(state.maxRain<20) n++;
-  if(state.maxFlight<8) n++;
+  if(state.maxFlight<16) n++;
   return n;
 }
 function updateFilterBtn(){
@@ -1089,7 +1189,7 @@ function updateFilterBtn(){
 }
 
 function syncFilterLabels(){
-  const seaOn = state.minSea>7, airOn = (state.airMin>7 || state.airMax<40), rainOn = state.maxRain<20, flightOn = state.maxFlight<8;
+  const seaOn = state.minSea>7, airOn = (state.airMin>7 || state.airMax<40), rainOn = state.maxRain<20, flightOn = state.maxFlight<16;
   document.getElementById('seaval').textContent   = seaOn ? state.minSea+'°' : 'aus';
   document.getElementById('airval').textContent   = airOn ? `${state.airMin}–${state.airMax}°` : 'aus';
   document.getElementById('rainval').textContent  = rainOn ? state.maxRain+' Tage' : 'aus';
