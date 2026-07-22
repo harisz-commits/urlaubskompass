@@ -26,6 +26,50 @@ COUNTRY_EN = {
   "Montenegro":"Montenegro","Albanien":"Albania","Slowenien":"Slovenia",
   "Bulgarien":"Bulgaria","Rumänien":"Romania","Deutschland":"Germany",
   "Niederlande":"Netherlands","England":"United Kingdom",
+  "Malediven":"Maldives",
+  "Mauritius":"Mauritius",
+  "Seychellen":"Seychelles",
+  "Tansania":"Tanzania",
+  "Kenia":"Kenya",
+  "Madagaskar":"Madagascar",
+  "Sri Lanka":"Sri Lanka",
+  "Indien":"India",
+  "Thailand":"Thailand",
+  "Vietnam":"Vietnam",
+  "Indonesien":"Indonesia",
+  "Malaysia":"Malaysia",
+  "Philippinen":"Philippines",
+  "China":"China",
+  "Japan":"Japan",
+  "Dominikanische Republik":"Dominican Republic",
+  "Kuba":"Cuba",
+  "Jamaika":"Jamaica",
+  "Mexiko":"Mexico",
+  "Barbados":"Barbados",
+  "Curaçao":"Curacao",
+  "Aruba":"Aruba",
+  "Bahamas":"Bahamas",
+  "Antigua und Barbuda":"Antigua and Barbuda",
+  "St. Lucia":"Saint Lucia",
+  "Martinique":"Martinique",
+  "Guadeloupe":"Guadeloupe",
+  "Puerto Rico":"Puerto Rico",
+  "Turks- und Caicosinseln":"Turks and Caicos",
+  "Costa Rica":"Costa Rica",
+  "Panama":"Panama",
+  "Belize":"Belize",
+  "Kolumbien":"Colombia",
+  "USA":"United States",
+  "Brasilien":"Brazil",
+  "Südafrika":"South Africa",
+  "Senegal":"Senegal",
+  "Mosambik":"Mozambique",
+  "Katar":"Qatar",
+  "Bahrain":"Bahrain",
+  "Australien":"Australia",
+  "Fidschi":"Fiji",
+  "Französisch-Polynesien":"French Polynesia",
+  "Georgien":"Georgia",
 }
 COUNTRY_PHRASE = {
   "VAE":"den Vereinigten Arabischen Emiraten",
@@ -187,14 +231,23 @@ def is_direct(ok, d, flights, dest_index):
     idx=dest_index[d["id"]]; bits=flights.get(ok,"")
     return idx < len(bits) and bits[idx]=="1"
 
+LONGHAUL_H = 7.5   # ab hier keine harte Direktflug-Aussage (Saisonfluege wechseln staendig)
+
+def flight_hours(ok, d):
+    o=ORIGINS[ok]
+    return hav(o["lat"],o["lon"],d["lat"],d["lon"])/800+0.75
+
 def flight_items(d, flights, dest_index):
     out=[]
     for ok in SHOW_ORIGINS:
         o=ORIGINS.get(ok)
         if not o: continue
-        h=hav(o["lat"],o["lon"],d["lat"],d["lon"])/800+0.75
-        direct=is_direct(ok, d, flights, dest_index)
-        out.append(f"<li>ab {esc(o['label'])} ~{fmt_hm(h)} · {'direkt' if direct else 'mit Umstieg'}</li>")
+        h=flight_hours(ok, d)
+        if h > LONGHAUL_H:
+            note="Direktflug je nach Saison, sonst ein Umstieg"
+        else:
+            note="direkt" if is_direct(ok, d, flights, dest_index) else "mit Umstieg"
+        out.append(f"<li>ab {esc(o['label'])} ~{fmt_hm(h)} · {note}</li>")
     return "<ul class=\"flights\">"+"".join(out)+"</ul>"
 
 def stay22(d):
@@ -243,10 +296,13 @@ def quick_box(name, cs, d, flights, dest_index):
     when = sw if sw else "nur in den wärmsten Monaten"
     flighttxt=""
     if d:
-        direct_any=any(is_direct(ok, d, flights, dest_index) for ok in SHOW_ORIGINS)
-        h=hav(ORIGINS["VIE"]["lat"],ORIGINS["VIE"]["lon"],d["lat"],d["lon"])/800+0.75
-        flighttxt=(f" Ab Wien bist du in rund {fmt_hm(h)} da"
-                   f"{', meist direkt' if direct_any else ', meist mit einem Umstieg'}.")
+        h=flight_hours("VIE", d)
+        if h > LONGHAUL_H:
+            flighttxt=f" Ab Wien sind es rund {fmt_hm(h)} Flug."
+        else:
+            direct_any=any(is_direct(ok, d, flights, dest_index) for ok in SHOW_ORIGINS)
+            flighttxt=(f" Ab Wien bist du in rund {fmt_hm(h)} da"
+                       f"{', meist direkt' if direct_any else ', meist mit einem Umstieg'}.")
     return (f'<div class="box"><b>Kurz gesagt:</b> Baden lohnt sich {esc(when)}, '
             f'am wärmsten ist das Meer im {MONTHS_DE[warm]} mit rund {rnd(cs[warm])} Grad.'
             f'{esc(flighttxt)}</div>')
@@ -266,11 +322,16 @@ def faq_dest(d, c, flights, dest_index):
         faq.append((f"Wie heiß wird es im Sommer in {d['name']}?",
                     f"Im Hochsommer klettert die Lufttemperatur tagsüber auf über {rnd(ah)} Grad. "
                     f"Zum Sightseeing ist das viel, fürs Wasser dafür ideal."))
-    direct=is_direct("VIE", d, flights, dest_index)
-    h=hav(ORIGINS["VIE"]["lat"],ORIGINS["VIE"]["lon"],d["lat"],d["lon"])/800+0.75
-    faq.append((f"Gibt es Direktflüge nach {d['name']}?",
-                f"Ab Wien ist {d['name']} in ungefähr {fmt_hm(h)} erreichbar, "
-                f"{'in der Regel als Direktflug' if direct else 'meist mit einem Umstieg'}."))
+    h=flight_hours("VIE", d)
+    if h > LONGHAUL_H:
+        faq.append((f"Wie lange fliegt man nach {d['name']}?",
+                    f"Ab Wien dauert der Flug ungefähr {fmt_hm(h)}. Direktverbindungen gibt es "
+                    f"je nach Saison, sonst fliegst du mit einem Umstieg."))
+    else:
+        direct=is_direct("VIE", d, flights, dest_index)
+        faq.append((f"Gibt es Direktflüge nach {d['name']}?",
+                    f"Ab Wien ist {d['name']} in ungefähr {fmt_hm(h)} erreichbar, "
+                    f"{'in der Regel als Direktflug' if direct else 'meist mit einem Umstieg'}."))
     return faq
 
 def faq_country(country, cities, clim, flights, dest_index):
@@ -288,11 +349,16 @@ def faq_country(country, cities, clim, flights, dest_index):
     faq.append((f"Wie warm ist das Meer in {primary['name']} im {MONTHS_DE[warm]}?",
                 f"Im {MONTHS_DE[warm]} liegt die Wassertemperatur in {primary['name']} bei rund "
                 f"{rnd(sea_avg(clim[primary['id']],warm))} Grad."))
-    direct=is_direct("VIE", primary, flights, dest_index)
-    h=hav(ORIGINS["VIE"]["lat"],ORIGINS["VIE"]["lon"],primary["lat"],primary["lon"])/800+0.75
-    faq.append((f"Gibt es Direktflüge nach {primary['name']}?",
-                f"Ab Wien ist {primary['name']} in ungefähr {fmt_hm(h)} erreichbar, "
-                f"{'in der Regel als Direktflug' if direct else 'meist mit einem Umstieg'}."))
+    h=flight_hours("VIE", primary)
+    if h > LONGHAUL_H:
+        faq.append((f"Wie lange fliegt man nach {primary['name']}?",
+                    f"Ab Wien dauert der Flug ungefähr {fmt_hm(h)}. Direktverbindungen gibt es "
+                    f"je nach Saison, sonst mit einem Umstieg."))
+    else:
+        direct=is_direct("VIE", primary, flights, dest_index)
+        faq.append((f"Gibt es Direktflüge nach {primary['name']}?",
+                    f"Ab Wien ist {primary['name']} in ungefähr {fmt_hm(h)} erreichbar, "
+                    f"{'in der Regel als Direktflug' if direct else 'meist mit einem Umstieg'}."))
     return faq
 
 def faq_html(faq):
